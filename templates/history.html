@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}Attendance History – {{ student.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-history"></i> Attendance History</h1>
+        <p class="page-subtitle">{{ student.name }} • {{ student.registration_number }}</p>
+    </div>
+    <div class="header-actions">
+        <a href="{{ url_for('students') }}" class="btn btn-outline">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+    </div>
+</div>
+
+<!-- Student Card -->
+<div class="student-hero-card">
+    <div class="hero-avatar">{{ student.name[0].upper() }}</div>
+    <div class="hero-info">
+        <h2>{{ student.name }}</h2>
+        <div class="hero-meta">
+            <span><i class="fas fa-id-card"></i> {{ student.registration_number }}</span>
+            <span><i class="fas fa-door-open"></i> Room {{ student.room_number }}</span>
+            <span><i class="fas fa-graduation-cap"></i> {{ student.department }}</span>
+            <span><i class="fas fa-phone"></i> {{ student.phone }}</span>
+        </div>
+    </div>
+    <div class="hero-stats">
+        <div class="hero-stat">
+            <div class="hero-stat-val text-success">{{ stats.present }}</div>
+            <div class="hero-stat-label">Present</div>
+        </div>
+        <div class="hero-stat">
+            <div class="hero-stat-val text-warning">{{ stats.late }}</div>
+            <div class="hero-stat-label">Late</div>
+        </div>
+        <div class="hero-stat">
+            <div class="hero-stat-val text-danger">{{ stats.absent }}</div>
+            <div class="hero-stat-label">Absent</div>
+        </div>
+        <div class="hero-stat">
+            <div class="hero-stat-val text-info">{{ stats.leave }}</div>
+            <div class="hero-stat-label">Leave</div>
+        </div>
+        <div class="hero-stat">
+            <div class="hero-stat-val text-primary">{{ stats.percentage }}%</div>
+            <div class="hero-stat-label">Attendance</div>
+        </div>
+    </div>
+</div>
+
+<!-- Calendar Navigation -->
+<div class="calendar-nav">
+    {% set prev_month = month - 1 if month > 1 else 12 %}
+    {% set prev_year = year if month > 1 else year - 1 %}
+    {% set next_month = month + 1 if month < 12 else 1 %}
+    {% set next_year = year if month < 12 else year + 1 %}
+
+    <a href="{{ url_for('view_student', reg_num=student.registration_number, month=prev_month, year=prev_year) }}"
+       class="btn btn-outline">
+        <i class="fas fa-chevron-left"></i>
+    </a>
+    <h3 class="calendar-month-title">{{ cal_data.month_name }} {{ year }}</h3>
+    <a href="{{ url_for('view_student', reg_num=student.registration_number, month=next_month, year=next_year) }}"
+       class="btn btn-outline">
+        <i class="fas fa-chevron-right"></i>
+    </a>
+</div>
+
+<div class="history-layout">
+    <!-- Calendar -->
+    <div class="card calendar-card">
+        <div class="card-header">
+            <h3><i class="fas fa-calendar-alt"></i> {{ cal_data.month_name }} {{ year }}</h3>
+            <div class="calendar-legend">
+                <span class="cal-legend-item"><span class="cal-dot cal-present"></span>Present</span>
+                <span class="cal-legend-item"><span class="cal-dot cal-late"></span>Late</span>
+                <span class="cal-legend-item"><span class="cal-dot cal-absent"></span>Absent</span>
+                <span class="cal-legend-item"><span class="cal-dot cal-leave"></span>Leave</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="calendar-grid">
+                <div class="cal-header">Sun</div>
+                <div class="cal-header">Mon</div>
+                <div class="cal-header">Tue</div>
+                <div class="cal-header">Wed</div>
+                <div class="cal-header">Thu</div>
+                <div class="cal-header">Fri</div>
+                <div class="cal-header">Sat</div>
+
+                {% for week in cal_data.calendar %}
+                {% for day in week %}
+                {% if day == 0 %}
+                <div class="cal-day cal-empty"></div>
+                {% else %}
+                {% set status = cal_data.attendance_map.get(day) %}
+                <div class="cal-day cal-{{ status.lower() if status else 'none' }}"
+                     title="{{ status or 'No record' }}">
+                    <span class="cal-day-num">{{ day }}</span>
+                    {% if status %}
+                    <span class="cal-status-icon">
+                        {% if status == 'Present' %}<i class="fas fa-check"></i>
+                        {% elif status == 'Late' %}<i class="fas fa-clock"></i>
+                        {% elif status == 'Absent' %}<i class="fas fa-times"></i>
+                        {% elif status == 'Leave' %}<i class="fas fa-plane"></i>
+                        {% endif %}
+                    </span>
+                    {% endif %}
+                </div>
+                {% endif %}
+                {% endfor %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Records -->
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-list"></i> Recent Records</h3>
+        </div>
+        <div class="card-body p-0">
+            {% if attendance_records %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Day</th>
+                            <th>Status</th>
+                            <th>Marked At</th>
+                            <th>Marked By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in attendance_records %}
+                        <tr>
+                            <td>{{ record.date.strftime('%d %b %Y') }}</td>
+                            <td>{{ record.date.strftime('%A') }}</td>
+                            <td>
+                                <span class="status-chip status-{{ record.status.lower() }}">
+                                    {% if record.status == 'Present' %}<i class="fas fa-check"></i>
+                                    {% elif record.status == 'Late' %}<i class="fas fa-clock"></i>
+                                    {% elif record.status == 'Absent' %}<i class="fas fa-times"></i>
+                                    {% elif record.status == 'Leave' %}<i class="fas fa-plane"></i>
+                                    {% endif %}
+                                    {{ record.status }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if record.marked_at %}
+                                {{ record.marked_at.strftime('%I:%M %p') }}
+                                {% else %}—{% endif %}
+                            </td>
+                            <td>{{ record.marked_by or '—' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-calendar-times"></i>
+                <h3>No Records</h3>
+                <p>No attendance records found for this period.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

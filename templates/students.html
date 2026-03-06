@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Students – Hostel Attendance{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-users"></i> Students</h1>
+        <p class="page-subtitle">Manage registered students</p>
+    </div>
+    <div class="header-actions">
+        <a href="{{ url_for('register_student') }}" class="btn btn-primary">
+            <i class="fas fa-user-plus"></i> Register Student
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card filter-card">
+    <div class="card-body">
+        <form method="GET" class="filter-form">
+            <div class="filter-group">
+                <input type="text" name="search" value="{{ search }}"
+                       class="form-control" placeholder="Search by name, reg. number or room...">
+            </div>
+            <div class="filter-group">
+                <select name="dept" class="form-control">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept }}" {% if selected_dept == dept %}selected{% endif %}>{{ dept }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i> Search
+            </button>
+            <a href="{{ url_for('students') }}" class="btn btn-outline">
+                <i class="fas fa-times"></i> Clear
+            </a>
+        </form>
+    </div>
+</div>
+
+<!-- Students Table -->
+<div class="card">
+    <div class="card-header">
+        <h3><i class="fas fa-list"></i> Student List
+            <span class="badge badge-primary">{{ student_data|length }}</span>
+        </h3>
+    </div>
+    <div class="card-body p-0">
+        {% if student_data %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Student</th>
+                        <th>Reg. Number</th>
+                        <th>Room</th>
+                        <th>Department</th>
+                        <th>Phone</th>
+                        <th>Face Data</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in student_data %}
+                    {% set s = item.student %}
+                    <tr>
+                        <td class="td-num">{{ loop.index }}</td>
+                        <td>
+                            <div class="student-cell">
+                                <div class="student-avatar">
+                                    {{ s.name[0].upper() }}
+                                </div>
+                                <div class="student-info">
+                                    <div class="student-name">{{ s.name }}</div>
+                                    <div class="student-email">{{ s.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="reg-badge">{{ s.registration_number }}</span></td>
+                        <td><span class="room-badge">{{ s.room_number }}</span></td>
+                        <td>{{ s.department }}</td>
+                        <td>{{ s.phone }}</td>
+                        <td>
+                            {% if item.img_count >= 20 %}
+                            <span class="badge badge-success">
+                                <i class="fas fa-check"></i> {{ item.img_count }} images
+                            </span>
+                            {% elif item.img_count > 0 %}
+                            <span class="badge badge-warning">
+                                <i class="fas fa-exclamation"></i> {{ item.img_count }}/20
+                            </span>
+                            {% else %}
+                            <span class="badge badge-danger">
+                                <i class="fas fa-times"></i> No face data
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="{{ url_for('view_student', reg_num=s.registration_number) }}"
+                                   class="btn btn-xs btn-info" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{{ url_for('edit_student', reg_num=s.registration_number) }}"
+                                   class="btn btn-xs btn-warning" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{{ url_for('capture_face', reg_num=s.registration_number) }}"
+                                   class="btn btn-xs btn-primary" title="Capture Face">
+                                    <i class="fas fa-camera"></i>
+                                </a>
+                                <form method="POST"
+                                      action="{{ url_for('delete_student', reg_num=s.registration_number) }}"
+                                      style="display:inline"
+                                      onsubmit="return confirm('Remove {{ s.name }}?')">
+                                    <button type="submit" class="btn btn-xs btn-danger" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-users"></i>
+            <h3>No students found</h3>
+            <p>{% if search %}No results for "{{ search }}".{% else %}Register your first student to get started.{% endif %}</p>
+            <a href="{{ url_for('register_student') }}" class="btn btn-primary">
+                <i class="fas fa-user-plus"></i> Register Student
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

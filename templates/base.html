@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SGGS Hostel Attendance{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-icon"><i class="fas fa-university"></i></div>
+        <div class="brand-text">
+            <span class="brand-name">SGGS Hostel</span>
+            <span class="brand-sub">Attendance System</span>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="nav-section">
+            <span class="nav-label">Main</span>
+            <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                <i class="fas fa-tachometer-alt"></i><span>Dashboard</span>
+            </a>
+            <a href="{{ url_for('attendance') }}" class="nav-item {% if request.endpoint == 'attendance' %}active{% endif %}">
+                <i class="fas fa-camera"></i><span>Mark Attendance</span>
+            </a>
+        </div>
+        <div class="nav-section">
+            <span class="nav-label">Students</span>
+            <a href="{{ url_for('students') }}" class="nav-item {% if request.endpoint == 'students' %}active{% endif %}">
+                <i class="fas fa-users"></i><span>All Students</span>
+            </a>
+            <a href="{{ url_for('register_student') }}" class="nav-item {% if request.endpoint == 'register_student' %}active{% endif %}">
+                <i class="fas fa-user-plus"></i><span>Register Student</span>
+            </a>
+        </div>
+        <div class="nav-section">
+            <span class="nav-label">Reports</span>
+            <a href="{{ url_for('absent_list') }}" class="nav-item {% if request.endpoint == 'absent_list' %}active{% endif %}">
+                <i class="fas fa-user-times"></i><span>Absent List</span>
+            </a>
+            <a href="{{ url_for('leave_management') }}" class="nav-item {% if request.endpoint == 'leave_management' %}active{% endif %}">
+                <i class="fas fa-calendar-minus"></i><span>Leave Management</span>
+            </a>
+            <a href="{{ url_for('penalties_view') }}" class="nav-item {% if request.endpoint == 'penalties_view' %}active{% endif %}">
+                <i class="fas fa-exclamation-triangle"></i><span>Penalties</span>
+            </a>
+        </div>
+        <div class="nav-section">
+            <span class="nav-label">System</span>
+            <form method="POST" action="{{ url_for('train_model') }}" style="margin:0">
+                <button type="submit" class="nav-item nav-btn"
+                        onclick="return confirm('Train face recognition model?')">
+                    <i class="fas fa-brain"></i><span>Train Model</span>
+                </button>
+            </form>
+            <a href="{{ url_for('logout') }}" class="nav-item nav-danger">
+                <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="user-avatar"><i class="fas fa-user-shield"></i></div>
+            <div class="user-details">
+                <span class="user-name">{{ current_user.username }}</span>
+                <span class="user-role">{{ current_user.role }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="main-content" id="mainContent">
+    <!-- Topbar -->
+    <div class="topbar">
+        <button class="toggle-sidebar" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+        </button>
+        <div class="topbar-info">
+            <div class="datetime-display">
+                <span id="currentDate"></span>
+                <span id="currentTime" class="time-badge"></span>
+            </div>
+        </div>
+        <div class="topbar-actions">
+            <a href="{{ url_for('download_excel') }}" class="btn btn-sm btn-outline" title="Download Excel">
+                <i class="fas fa-file-excel"></i>
+            </a>
+            <a href="{{ url_for('download_pdf') }}" class="btn btn-sm btn-outline" title="Download PDF">
+                <i class="fas fa-file-pdf"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-container">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">
+            <i class="fas {% if category == 'success' %}fa-check-circle{% elif category == 'danger' %}fa-exclamation-circle{% elif category == 'warning' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %}"></i>
+            {{ message }}
+            <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Page Content -->
+    <div class="page-content">
+        {% block content %}{% endblock %}
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/camera.js') }}"></script>
+<script>
+    function updateClock() {
+        const now = new Date();
+        const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        document.getElementById('currentDate').textContent =
+            `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+        let h = now.getHours(), m = String(now.getMinutes()).padStart(2,'0');
+        let s = String(now.getSeconds()).padStart(2,'0');
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        document.getElementById('currentTime').textContent = `${h}:${m}:${s} ${ampm}`;
+    }
+    setInterval(updateClock, 1000); updateClock();
+
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('collapsed');
+        document.getElementById('mainContent').classList.toggle('expanded');
+    }
+    setTimeout(() => {
+        document.querySelectorAll('.alert').forEach(a => {
+            a.style.transition = 'opacity 0.5s'; a.style.opacity = '0';
+            setTimeout(() => a.remove(), 500);
+        });
+    }, 5000);
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

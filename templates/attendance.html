@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+{% block title %}Mark Attendance – Hostel Attendance{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-camera"></i> Attendance Recognition</h1>
+        <p class="page-subtitle">Face recognition attendance marking</p>
+    </div>
+    <div class="header-actions">
+        <span class="badge {{ 'badge-success' if model_trained else 'badge-danger' }} badge-lg">
+            <i class="fas {{ 'fa-check' if model_trained else 'fa-times' }}"></i>
+            {{ 'Model Ready' if model_trained else 'Model Not Trained' }}
+        </span>
+    </div>
+</div>
+
+<!-- Summary Bar -->
+<div class="mini-stats">
+    <div class="mini-stat">
+        <span class="mini-label">Total</span>
+        <span class="mini-value">{{ summary.total }}</span>
+    </div>
+    <div class="mini-stat mini-present">
+        <span class="mini-label">Present</span>
+        <span class="mini-value">{{ summary.present }}</span>
+    </div>
+    <div class="mini-stat mini-late">
+        <span class="mini-label">Late</span>
+        <span class="mini-value">{{ summary.late }}</span>
+    </div>
+    <div class="mini-stat mini-absent">
+        <span class="mini-label">Absent</span>
+        <span class="mini-value">{{ summary.absent }}</span>
+    </div>
+    <div class="mini-stat mini-leave">
+        <span class="mini-label">Leave</span>
+        <span class="mini-value">{{ summary.leave }}</span>
+    </div>
+    <div class="mini-stat mini-pct">
+        <span class="mini-label">Attendance %</span>
+        <span class="mini-value">{{ summary.percentage }}%</span>
+    </div>
+</div>
+
+<div class="attendance-layout">
+    <!-- Camera Feed -->
+    <div class="card camera-card-main">
+        <div class="card-header">
+            <h3><i class="fas fa-video"></i> Live Recognition</h3>
+            <div class="camera-controls-header">
+                <button id="startCamBtn" class="btn btn-primary btn-sm" onclick="startRecognition()">
+                    <i class="fas fa-play"></i> Start
+                </button>
+                <button id="stopCamBtn" class="btn btn-danger btn-sm" style="display:none" onclick="stopRecognition()">
+                    <i class="fas fa-stop"></i> Stop
+                </button>
+            </div>
+        </div>
+        <div class="card-body camera-body">
+            {% if model_trained %}
+            <div class="camera-container">
+                <video id="videoFeed" autoplay playsinline class="camera-video"></video>
+                <canvas id="recognitionCanvas" class="recognition-canvas"></canvas>
+                <div class="camera-overlay-info">
+                    <span id="faceCount" class="face-count-badge">
+                        <i class="fas fa-user"></i> 0 faces
+                    </span>
+                </div>
+            </div>
+            {% else %}
+            <div class="camera-placeholder">
+                <i class="fas fa-brain"></i>
+                <h3>Model Not Trained</h3>
+                <p>Please train the face recognition model before taking attendance.</p>
+                <form method="POST" action="{{ url_for('train_model') }}">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-sync-alt"></i> Train Model Now
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- Recognition Log -->
+            <div class="recognition-log" id="recognitionLog">
+                <div class="log-header">
+                    <i class="fas fa-list"></i> Recognition Log
+                    <button class="btn btn-xs btn-outline" onclick="clearLog()">Clear</button>
+                </div>
+                <div class="log-entries" id="logEntries">
+                    <div class="log-entry log-info">
+                        <i class="fas fa-info-circle"></i> System ready. Start camera for face recognition.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Marking + Today's Records -->
+    <div class="side-panel">
+        <!-- Manual Mark -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-hand-pointer"></i> Manual Mark</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('mark_manual') }}">
+                    <div class="form-group">
+                        <label class="form-label">Registration Number</label>
+                        <input type="text" name="reg_num" class="form-control"
+                               placeholder="e.g. 2023CS001" required
+                               list="studentList" autocomplete="off">
+                        <datalist id="studentList">
+                            {% for item in records %}
+                            <option value="{{ item.student.registration_number }}">
+                                {{ item.student.name }}
+                            </option>
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-control">
+                            <option value="Present">Present</option>
+                            <option value="Late">Late</option>
+                            <option value="Absent">Absent</option>
+                            <option value="Leave">Leave</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i class="fas fa-check"></i> Mark Attendance
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Mark All Absent -->
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('api_mark_absent_all') }}"
+                      onsubmit="return confirm('Mark all unmarked students as absent?')">
+                    <button type="submit" class="btn btn-danger btn-full">
+                        <i class="fas fa-user-times"></i> Mark Remaining Absent
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Today's Marked Students -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-list-check"></i> Today's Records
+                    <span class="badge badge-primary">{{ records|length }}</span>
+                </h3>
+            </div>
+            <div class="card-body p-0">
+                <div class="attendance-records-list">
+                    {% if records %}
+                    {% for item in records %}
+                    <div class="attendance-record-item">
+                        <div class="record-avatar">{{ item.student.name[0] }}</div>
+                        <div class="record-info">
+                            <div class="record-name">{{ item.student.name }}</div>
+                            <div class="record-meta">
+                                {{ item.student.room_number }} •
+                                {{ item.marked_at.strftime('%I:%M %p') if item.marked_at else 'N/A' }}
+                            </div>
+                        </div>
+                        <span class="status-chip status-{{ item.status.lower() }}">
+                            {{ item.status }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="empty-mini">
+                        <i class="fas fa-clipboard"></i>
+                        <p>No attendance marked today</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+{% if model_trained %}
+let videoStream = null;
+let recognitionActive = false;
+let recognitionInterval = null;
+const recentlyMarked = {};
+const COOLDOWN_MS = 15000;
+
+async function startRecognition() {
+    try {
+        videoStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: 640, height: 480 }
+        });
+        document.getElementById('videoFeed').srcObject = videoStream;
+        recognitionActive = true;
+
+        document.getElementById('startCamBtn').style.display = 'none';
+        document.getElementById('stopCamBtn').style.display = 'inline-flex';
+
+        addLog('Camera started. Scanning for faces...', 'info');
+        recognitionInterval = setInterval(runRecognition, 2000);
+    } catch (err) {
+        addLog('Camera error: ' + err.message, 'error');
+    }
+}
+
+function stopRecognition() {
+    if (videoStream) {
+        videoStream.getTracks().forEach(t => t.stop());
+        videoStream = null;
+    }
+    recognitionActive = false;
+    if (recognitionInterval) {
+        clearInterval(recognitionInterval);
+        recognitionInterval = null;
+    }
+    document.getElementById('startCamBtn').style.display = 'inline-flex';
+    document.getElementById('stopCamBtn').style.display = 'none';
+    addLog('Camera stopped.', 'info');
+}
+
+async function runRecognition() {
+    if (!recognitionActive) return;
+    const video = document.getElementById('videoFeed');
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
+    try {
+        const resp = await fetch('/api/recognize_frame', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: imageData })
+        });
+        const data = await resp.json();
+
+        document.getElementById('faceCount').innerHTML =
+            `<i class="fas fa-user"></i> ${data.faces_count || 0} face${data.faces_count !== 1 ? 's' : ''}`;
+
+        if (data.results && data.results.length > 0) {
+            for (const result of data.results) {
+                const now = Date.now();
+                const key = result.reg_num || 'unknown';
+                if (now - (recentlyMarked[key] || 0) < COOLDOWN_MS) continue;
+                recentlyMarked[key] = now;
+
+                if (result.reg_num && result.name !== 'Unknown') {
+                    const type = result.success ? result.status === 'Late' ? 'warning' : 'success' : 'info';
+                    addLog(`${result.name} (${result.reg_num}) — ${result.message} [${result.confidence}%]`, type);
+                }
+            }
+        }
+    } catch (err) {
+        // Silently fail during recognition
+    }
+}
+
+function addLog(message, type = 'info') {
+    const container = document.getElementById('logEntries');
+    const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-times-circle',
+        warning: 'fa-clock',
+        info: 'fa-info-circle'
+    };
+    const entry = document.createElement('div');
+    entry.className = `log-entry log-${type}`;
+    const time = new Date().toLocaleTimeString();
+    entry.innerHTML = `<span class="log-time">${time}</span> <i class="fas ${icons[type]}"></i> ${message}`;
+    container.insertBefore(entry, container.firstChild);
+    while (container.children.length > 15) container.removeChild(container.lastChild);
+}
+
+function clearLog() {
+    document.getElementById('logEntries').innerHTML = '';
+}
+
+window.addEventListener('beforeunload', () => {
+    if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+});
+{% endif %}
+</script>
+{% endblock %}

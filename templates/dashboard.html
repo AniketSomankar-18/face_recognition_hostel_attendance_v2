@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – SGGS Hostel Attendance{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
+        <p class="page-subtitle">{{ summary.day }}, {{ summary.date }}</p>
+    </div>
+    <div class="header-actions">
+        <a href="{{ url_for('attendance') }}" class="btn btn-primary">
+            <i class="fas fa-camera"></i> Start Recognition
+        </a>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card stat-total">
+        <div class="stat-icon"><i class="fas fa-users"></i></div>
+        <div class="stat-content">
+            <div class="stat-value">{{ summary.total }}</div>
+            <div class="stat-label">Total Students</div>
+        </div>
+    </div>
+    <div class="stat-card stat-present">
+        <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+        <div class="stat-content">
+            <div class="stat-value">{{ summary.present }}</div>
+            <div class="stat-label">Present</div>
+        </div>
+    </div>
+    <div class="stat-card stat-late">
+        <div class="stat-icon"><i class="fas fa-clock"></i></div>
+        <div class="stat-content">
+            <div class="stat-value">{{ summary.late }}</div>
+            <div class="stat-label">Late</div>
+        </div>
+    </div>
+    <div class="stat-card stat-absent">
+        <div class="stat-icon"><i class="fas fa-user-times"></i></div>
+        <div class="stat-content">
+            <div class="stat-value">{{ summary.absent }}</div>
+            <div class="stat-label">Absent</div>
+        </div>
+    </div>
+    <div class="stat-card stat-leave">
+        <div class="stat-icon"><i class="fas fa-calendar-minus"></i></div>
+        <div class="stat-content">
+            <div class="stat-value">{{ summary.leave }}</div>
+            <div class="stat-label">On Leave</div>
+        </div>
+    </div>
+    <div class="stat-card stat-percentage">
+        <div class="stat-icon"><i class="fas fa-chart-pie"></i></div>
+        <div class="stat-content">
+            <div class="stat-value">{{ summary.percentage }}%</div>
+            <div class="stat-label">Attendance %</div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Dashboard Row: Overview (wider) + Quick Actions -->
+<div class="dashboard-main-row">
+
+    <!-- Today's Attendance Overview – expanded -->
+    <div class="card overview-card">
+        <div class="card-header">
+            <h3><i class="fas fa-chart-bar"></i> Today's Attendance Overview</h3>
+            <span class="card-date">{{ summary.date }}</span>
+        </div>
+        <div class="card-body overview-body">
+            <!-- Left: progress bars -->
+            <div class="overview-left">
+                <div class="attendance-progress">
+                    {% set total = summary.total if summary.total > 0 else 1 %}
+                    <div class="progress-item">
+                        <div class="progress-label">
+                            <span class="status-dot dot-present"></span>
+                            <span>Present</span>
+                            <span class="progress-count">{{ summary.present }}</span>
+                        </div>
+                        <div class="progress-bar-wrap">
+                            <div class="progress-bar bar-present"
+                                 style="width:{{ (summary.present / total * 100)|round(1) }}%"></div>
+                        </div>
+                        <div class="progress-pct">{{ (summary.present / total * 100)|round(1) }}%</div>
+                    </div>
+                    <div class="progress-item">
+                        <div class="progress-label">
+                            <span class="status-dot dot-late"></span>
+                            <span>Late</span>
+                            <span class="progress-count">{{ summary.late }}</span>
+                        </div>
+                        <div class="progress-bar-wrap">
+                            <div class="progress-bar bar-late"
+                                 style="width:{{ (summary.late / total * 100)|round(1) }}%"></div>
+                        </div>
+                        <div class="progress-pct">{{ (summary.late / total * 100)|round(1) }}%</div>
+                    </div>
+                    <div class="progress-item">
+                        <div class="progress-label">
+                            <span class="status-dot dot-absent"></span>
+                            <span>Absent</span>
+                            <span class="progress-count">{{ summary.absent }}</span>
+                        </div>
+                        <div class="progress-bar-wrap">
+                            <div class="progress-bar bar-absent"
+                                 style="width:{{ (summary.absent / total * 100)|round(1) }}%"></div>
+                        </div>
+                        <div class="progress-pct">{{ (summary.absent / total * 100)|round(1) }}%</div>
+                    </div>
+                    <div class="progress-item">
+                        <div class="progress-label">
+                            <span class="status-dot dot-leave"></span>
+                            <span>On Leave</span>
+                            <span class="progress-count">{{ summary.leave }}</span>
+                        </div>
+                        <div class="progress-bar-wrap">
+                            <div class="progress-bar bar-leave"
+                                 style="width:{{ (summary.leave / total * 100)|round(1) }}%"></div>
+                        </div>
+                        <div class="progress-pct">{{ (summary.leave / total * 100)|round(1) }}%</div>
+                    </div>
+                    <div class="progress-item">
+                        <div class="progress-label">
+                            <span class="status-dot dot-unmarked"></span>
+                            <span>Not Marked</span>
+                            <span class="progress-count">{{ summary.unmarked }}</span>
+                        </div>
+                        <div class="progress-bar-wrap">
+                            <div class="progress-bar bar-unmarked"
+                                 style="width:{{ (summary.unmarked / total * 100)|round(1) }}%"></div>
+                        </div>
+                        <div class="progress-pct">{{ (summary.unmarked / total * 100)|round(1) }}%</div>
+                    </div>
+                </div>
+
+                <!-- Status Legend -->
+                <div class="status-legend-row">
+                    <div class="legend-item"><span class="dot dot-present"></span> Present</div>
+                    <div class="legend-item"><span class="dot dot-late"></span> Late</div>
+                    <div class="legend-item"><span class="dot dot-absent"></span> Absent</div>
+                    <div class="legend-item"><span class="dot dot-leave"></span> Leave</div>
+                    <div class="legend-item"><span class="dot dot-unmarked"></span> Unmarked</div>
+                </div>
+            </div>
+
+            <!-- Right: circular progress -->
+            <div class="overview-right">
+                <div class="circular-progress">
+                    <svg viewBox="0 0 100 100" class="circular-svg">
+                        <circle class="circle-bg" cx="50" cy="50" r="40"/>
+                        <circle class="circle-fill" cx="50" cy="50" r="40"
+                                stroke-dasharray="{{ (summary.percentage * 2.51)|round(1) }} 251.2"/>
+                    </svg>
+                    <div class="circular-label">
+                        <span class="circular-value">{{ summary.percentage }}%</span>
+                        <span class="circular-text">Attendance</span>
+                    </div>
+                </div>
+
+                <div class="overview-summary-pills">
+                    <div class="summary-pill pill-present">
+                        <span class="pill-val">{{ summary.present }}</span>
+                        <span class="pill-label">Present</span>
+                    </div>
+                    <div class="summary-pill pill-late">
+                        <span class="pill-val">{{ summary.late }}</span>
+                        <span class="pill-label">Late</span>
+                    </div>
+                    <div class="summary-pill pill-absent">
+                        <span class="pill-val">{{ summary.absent }}</span>
+                        <span class="pill-label">Absent</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions – right side fully used -->
+    <div class="card actions-card">
+        <div class="card-header">
+            <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+        </div>
+        <div class="card-body">
+            <div class="quick-actions-grid">
+                <a href="{{ url_for('attendance') }}" class="action-card">
+                    <div class="action-icon action-camera"><i class="fas fa-camera"></i></div>
+                    <div class="action-label">Mark Attendance</div>
+                    <div class="action-sub">Face Recognition</div>
+                </a>
+                <a href="{{ url_for('register_student') }}" class="action-card">
+                    <div class="action-icon action-add"><i class="fas fa-user-plus"></i></div>
+                    <div class="action-label">Add Student</div>
+                    <div class="action-sub">Register New</div>
+                </a>
+                <a href="{{ url_for('absent_list') }}" class="action-card">
+                    <div class="action-icon action-absent"><i class="fas fa-user-times"></i></div>
+                    <div class="action-label">Absent List</div>
+                    <div class="action-sub">Today's Absentees</div>
+                </a>
+                <a href="{{ url_for('leave_management') }}" class="action-card">
+                    <div class="action-icon action-leave"><i class="fas fa-calendar-minus"></i></div>
+                    <div class="action-label">Leave</div>
+                    <div class="action-sub">Manage Leaves</div>
+                </a>
+                <a href="{{ url_for('download_excel') }}" class="action-card">
+                    <div class="action-icon action-excel"><i class="fas fa-file-excel"></i></div>
+                    <div class="action-label">Excel Report</div>
+                    <div class="action-sub">Download</div>
+                </a>
+                <a href="{{ url_for('download_pdf') }}" class="action-card">
+                    <div class="action-icon action-pdf"><i class="fas fa-file-pdf"></i></div>
+                    <div class="action-label">PDF Report</div>
+                    <div class="action-sub">Absent List</div>
+                </a>
+                <a href="{{ url_for('students') }}" class="action-card">
+                    <div class="action-icon action-students"><i class="fas fa-users"></i></div>
+                    <div class="action-label">Students</div>
+                    <div class="action-sub">Manage All</div>
+                </a>
+                <a href="{{ url_for('penalties_view') }}" class="action-card">
+                    <div class="action-icon action-penalty"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="action-label">Penalties</div>
+                    <div class="action-sub">View Records</div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

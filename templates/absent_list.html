@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Absent List – SGGS Hostel Attendance{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-user-times"></i> Absent List</h1>
+        <p class="page-subtitle">{{ now.strftime('%A, %d %B %Y') }}</p>
+    </div>
+    <div class="header-actions">
+        <a href="{{ url_for('download_pdf') }}" class="btn btn-danger">
+            <i class="fas fa-file-pdf"></i> Download PDF
+        </a>
+        <a href="{{ url_for('download_excel') }}" class="btn btn-success">
+            <i class="fas fa-file-excel"></i> Download Excel
+        </a>
+    </div>
+</div>
+
+<!-- Summary -->
+<div class="mini-stats">
+    <div class="mini-stat">
+        <span class="mini-label">Total Students</span>
+        <span class="mini-value">{{ summary.total }}</span>
+    </div>
+    <div class="mini-stat mini-present">
+        <span class="mini-label">Present</span>
+        <span class="mini-value">{{ summary.present }}</span>
+    </div>
+    <div class="mini-stat mini-late">
+        <span class="mini-label">Late</span>
+        <span class="mini-value">{{ summary.late }}</span>
+    </div>
+    <div class="mini-stat mini-absent">
+        <span class="mini-label">Absent</span>
+        <span class="mini-value">{{ summary.absent }}</span>
+    </div>
+    <div class="mini-stat mini-leave">
+        <span class="mini-label">On Leave</span>
+        <span class="mini-value">{{ summary.leave }}</span>
+    </div>
+    <div class="mini-stat mini-pct">
+        <span class="mini-label">Attendance %</span>
+        <span class="mini-value">{{ summary.percentage }}%</span>
+    </div>
+</div>
+
+<!-- Absent Students Table -->
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="fas fa-user-times"></i> Absent Students
+            <span class="badge badge-danger">{{ absent_students|length }}</span>
+        </h3>
+    </div>
+    <div class="card-body p-0">
+        {% if absent_students %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Student</th>
+                        <th>Reg. Number</th>
+                        <th>Room</th>
+                        <th>Department</th>
+                        <th>Parent Phone</th>
+                        <th>Marked At</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in absent_students %}
+                    <tr>
+                        <td class="td-num">{{ loop.index }}</td>
+                        <td>
+                            <div class="student-cell">
+                                <div class="student-avatar absent-avatar">{{ s.name[0] }}</div>
+                                <div class="student-info">
+                                    <div class="student-name">{{ s.name }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="reg-badge">{{ s.registration_number }}</span></td>
+                        <td><span class="room-badge">{{ s.room_number }}</span></td>
+                        <td>{{ s.department }}</td>
+                        <td>
+                            <a href="tel:{{ s.parent_phone }}" class="phone-link">
+                                <i class="fas fa-phone"></i> {{ s.parent_phone }}
+                            </a>
+                        </td>
+                        <td>{{ s.marked_at }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('mark_manual') }}" style="display:inline">
+                                <input type="hidden" name="reg_num" value="{{ s.registration_number }}">
+                                <input type="hidden" name="status" value="Present">
+                                <button type="submit" class="btn btn-xs btn-success">
+                                    <i class="fas fa-check"></i> Mark Present
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state success-state">
+            <i class="fas fa-check-circle"></i>
+            <h3>No Absent Students!</h3>
+            <p>All students have marked their attendance today.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Download Options -->
+<div class="card" style="margin-top:1rem">
+    <div class="card-header">
+        <h3><i class="fas fa-download"></i> Download Reports</h3>
+    </div>
+    <div class="card-body">
+        <div class="download-options">
+            <div class="download-item">
+                <div class="download-icon excel-icon"><i class="fas fa-file-excel"></i></div>
+                <div class="download-info">
+                    <h4>Monthly Excel Report</h4>
+                    <p>Full attendance sheet with all students and days</p>
+                </div>
+                <form method="GET" action="{{ url_for('download_excel') }}" style="display:flex;gap:0.5rem;align-items:center">
+                    <select name="month" class="form-control form-control-sm">
+                        {% for m in range(1, 13) %}
+                        <option value="{{ m }}" {% if m == now.month %}selected{% endif %}>
+                            {{ ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1] }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <input type="number" name="year" class="form-control form-control-sm"
+                           value="{{ now.year }}" min="2020" max="2030" style="width:80px">
+                    <button type="submit" class="btn btn-success btn-sm">
+                        <i class="fas fa-download"></i> Download
+                    </button>
+                </form>
+            </div>
+            <div class="download-item">
+                <div class="download-icon pdf-icon"><i class="fas fa-file-pdf"></i></div>
+                <div class="download-info">
+                    <h4>Absent Report PDF</h4>
+                    <p>List of absent students with parent contacts</p>
+                </div>
+                <form method="GET" action="{{ url_for('download_pdf') }}" style="display:flex;gap:0.5rem;align-items:center">
+                    <input type="date" name="date" class="form-control form-control-sm"
+                           value="{{ now.strftime('%Y-%m-%d') }}">
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="fas fa-download"></i> Download
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

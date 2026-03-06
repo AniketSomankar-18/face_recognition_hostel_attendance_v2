@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% block title %}Capture Face – {{ student.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-camera"></i> Face Capture</h1>
+        <p class="page-subtitle">Capture face images for {{ student.name }}</p>
+    </div>
+    <div class="header-actions">
+        <a href="{{ url_for('students') }}" class="btn btn-outline">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+    </div>
+</div>
+
+<div class="capture-layout">
+    <!-- Camera Panel -->
+    <div class="card camera-card">
+        <div class="card-header">
+            <h3><i class="fas fa-video"></i> Live Camera</h3>
+            <span class="badge badge-info">{{ student.registration_number }}</span>
+        </div>
+        <div class="card-body">
+            <div class="camera-container">
+                <video id="videoFeed" autoplay playsinline class="camera-video"></video>
+                <canvas id="canvas" style="display:none"></canvas>
+                <div class="camera-overlay">
+                    <div class="face-frame">
+                        <span class="fc tl"></span>
+                        <span class="fc tr"></span>
+                        <span class="fc bl"></span>
+                        <span class="fc br"></span>
+                    </div>
+                    <div class="camera-status" id="cameraStatus">
+                        <i class="fas fa-circle-notch fa-spin"></i> Initializing camera...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress -->
+            <div class="capture-progress">
+                <div class="progress-header">
+                    <span>Images Captured</span>
+                    <span id="captureCount">{{ img_count }}</span>/<span>{{ required }}</span>
+                </div>
+                <div class="progress-bar-wrap">
+                    <div class="progress-bar bar-present" id="captureBar"
+                         style="width: {{ (img_count / required * 100) | int }}%">
+                    </div>
+                </div>
+                <div class="progress-pct" id="capturePct">
+                    {{ (img_count / required * 100) | int }}%
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="capture-controls">
+                <button id="startBtn" class="btn btn-primary btn-lg" onclick="startCapture()">
+                    <i class="fas fa-play"></i> Start Auto Capture
+                </button>
+                <button id="stopBtn" class="btn btn-danger btn-lg" style="display:none" onclick="stopCapture()">
+                    <i class="fas fa-stop"></i> Stop
+                </button>
+                <button id="manualBtn" class="btn btn-outline btn-lg" onclick="captureOne()">
+                    <i class="fas fa-camera"></i> Capture One
+                </button>
+            </div>
+
+            <!-- Status Log -->
+            <div class="capture-log" id="captureLog">
+                <div class="log-entry log-info">
+                    <i class="fas fa-info-circle"></i> Ready to capture face images for {{ student.name }}.
+                    Position face in the frame.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Info Panel -->
+    <div class="side-panel">
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-user"></i> Student Info</h3>
+            </div>
+            <div class="card-body">
+                <div class="student-profile">
+                    <div class="profile-avatar large">{{ student.name[0].upper() }}</div>
+                    <h3 class="profile-name">{{ student.name }}</h3>
+                    <span class="reg-badge">{{ student.registration_number }}</span>
+                </div>
+                <div class="profile-details">
+                    <div class="detail-row">
+                        <span class="detail-label"><i class="fas fa-door-open"></i> Room</span>
+                        <span class="detail-value">{{ student.room_number }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label"><i class="fas fa-graduation-cap"></i> Dept</span>
+                        <span class="detail-value">{{ student.department }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label"><i class="fas fa-phone"></i> Phone</span>
+                        <span class="detail-value">{{ student.phone }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-lightbulb"></i> Tips</h3>
+            </div>
+            <div class="card-body">
+                <ul class="tips-list">
+                    <li><i class="fas fa-sun"></i> Ensure good lighting</li>
+                    <li><i class="fas fa-eye"></i> Look directly at camera</li>
+                    <li><i class="fas fa-head-side-mask"></i> Remove glasses if possible</li>
+                    <li><i class="fas fa-arrows-alt"></i> Slightly move head for variety</li>
+                    <li><i class="fas fa-smile"></i> Try different expressions</li>
+                    <li><i class="fas fa-images"></i> Need 20 clear images</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Complete Button -->
+        <div id="completeSection" style="display: {% if img_count >= required %}block{% else %}none{% endif %}">
+            <div class="card card-success">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle success-icon"></i>
+                    <h3>Face Capture Complete!</h3>
+                    <p>All {{ required }} images captured successfully.</p>
+                    <a href="{{ url_for('students') }}" class="btn btn-success btn-full" style="margin-bottom:0.5rem">
+                        <i class="fas fa-users"></i> Back to Students
+                    </a>
+                    <a href="{{ url_for('train_model') }}" class="btn btn-primary btn-full"
+                       onclick="return confirm('Train model now?')">
+                        <i class="fas fa-brain"></i> Train Model
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const REG_NUM = "{{ student.registration_number }}";
+const REQUIRED = {{ required }};
+let currentCount = {{ img_count }};
+let captureInterval = null;
+let stream = null;
+
+// Start webcam
+async function initCamera() {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: 640, height: 480, facingMode: 'user' }
+        });
+        document.getElementById('videoFeed').srcObject = stream;
+        document.getElementById('cameraStatus').innerHTML =
+            '<i class="fas fa-circle text-success"></i> Camera Ready';
+        document.getElementById('cameraStatus').className = 'camera-status status-ready';
+    } catch (err) {
+        document.getElementById('cameraStatus').innerHTML =
+            '<i class="fas fa-exclamation-triangle"></i> Camera Error: ' + err.message;
+        addLog('Camera access denied: ' + err.message, 'error');
+    }
+}
+
+function captureFrame() {
+    const video = document.getElementById('videoFeed');
+    const canvas = document.getElementById('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+    return canvas.toDataURL('image/jpeg', 0.9);
+}
+
+async function captureOne() {
+    if (currentCount >= REQUIRED) {
+        addLog('All images already captured!', 'success');
+        return;
+    }
+    const imageData = captureFrame();
+    await sendFrame(imageData);
+}
+
+async function sendFrame(imageData) {
+    try {
+        const resp = await fetch('/api/capture_frame', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reg_num: REG_NUM, image: imageData })
+        });
+        const data = await resp.json();
+
+        if (data.success) {
+            currentCount = data.count;
+            updateProgress(currentCount);
+            addLog(`Image ${currentCount}/${REQUIRED} captured`, 'success');
+
+            if (data.complete) {
+                stopCapture();
+                document.getElementById('completeSection').style.display = 'block';
+                addLog('All face images captured! Model training recommended.', 'success');
+            }
+        } else {
+            addLog(data.message, 'warning');
+        }
+    } catch (err) {
+        addLog('Error: ' + err.message, 'error');
+    }
+}
+
+function startCapture() {
+    if (captureInterval) return;
+    document.getElementById('startBtn').style.display = 'none';
+    document.getElementById('stopBtn').style.display = 'inline-flex';
+    addLog('Auto capture started. Capturing every 1.5 seconds...', 'info');
+
+    captureInterval = setInterval(async () => {
+        if (currentCount >= REQUIRED) {
+            stopCapture();
+            return;
+        }
+        const imageData = captureFrame();
+        await sendFrame(imageData);
+    }, 1500);
+}
+
+function stopCapture() {
+    if (captureInterval) {
+        clearInterval(captureInterval);
+        captureInterval = null;
+    }
+    document.getElementById('startBtn').style.display = 'inline-flex';
+    document.getElementById('stopBtn').style.display = 'none';
+    addLog('Capture stopped.', 'info');
+}
+
+function updateProgress(count) {
+    const pct = Math.round(count / REQUIRED * 100);
+    document.getElementById('captureCount').textContent = count;
+    document.getElementById('captureBar').style.width = pct + '%';
+    document.getElementById('capturePct').textContent = pct + '%';
+}
+
+function addLog(message, type = 'info') {
+    const log = document.getElementById('captureLog');
+    const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-times-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+    };
+    const entry = document.createElement('div');
+    entry.className = `log-entry log-${type}`;
+    entry.innerHTML = `<i class="fas ${icons[type]}"></i> ${message}`;
+    log.insertBefore(entry, log.firstChild);
+    if (log.children.length > 10) log.removeChild(log.lastChild);
+}
+
+// Initialize on load
+window.addEventListener('load', initCamera);
+window.addEventListener('beforeunload', () => {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+});
+</script>
+{% endblock %}

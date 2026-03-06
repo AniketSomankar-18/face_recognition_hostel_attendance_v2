@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Penalties – SGGS Hostel Attendance{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-exclamation-triangle"></i> Penalty Records</h1>
+        <p class="page-subtitle">Automatic absence penalty tracking</p>
+    </div>
+</div>
+
+<!-- Penalty Summary -->
+<div class="stats-grid" style="grid-template-columns: repeat(4, 1fr)">
+    <div class="stat-card stat-absent">
+        <div class="stat-icon"><i class="fas fa-rupee-sign"></i></div>
+        <div class="stat-content">
+            <div class="stat-value">₹{{ total_penalty }}</div>
+            <div class="stat-label">Total Penalties</div>
+        </div>
+    </div>
+    <div class="stat-card stat-total">
+        <div class="stat-icon"><i class="fas fa-list"></i></div>
+        <div class="stat-content">
+            <div class="stat-value">{{ penalties|length }}</div>
+            <div class="stat-label">Penalty Records</div>
+        </div>
+    </div>
+    <div class="stat-card stat-late">
+        <div class="stat-icon"><i class="fas fa-user-times"></i></div>
+        <div class="stat-content">
+            <div class="stat-value">{{ students_penalised }}</div>
+            <div class="stat-label">Students Penalised</div>
+        </div>
+    </div>
+    <div class="stat-card stat-percentage">
+        <div class="stat-icon"><i class="fas fa-calendar-day"></i></div>
+        <div class="stat-content">
+            <div class="stat-value">{{ today }}</div>
+            <div class="stat-label">Today</div>
+        </div>
+    </div>
+</div>
+
+<!-- Penalty Rules Info -->
+<div class="card" style="margin-bottom:1rem; background: #fffbeb; border-color: #fde68a;">
+    <div class="card-body" style="padding:1rem 1.25rem">
+        <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap">
+            <i class="fas fa-info-circle" style="color:#b45309; font-size:1.2rem"></i>
+            <strong style="color:#92400e">Penalty Rules:</strong>
+            <span style="color:#78350f; font-size:0.875rem">
+                1st Absence → <strong>₹100</strong> &nbsp;|&nbsp;
+                2nd Absence → <strong>₹500</strong> &nbsp;|&nbsp;
+                3rd+ Absence → <strong>₹1000</strong>
+            </span>
+            <span style="margin-left:auto; font-size:0.8rem; color:#92400e">
+                Penalties applied automatically at 9:30 PM daily
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Penalties Table -->
+<div class="card">
+    <div class="card-header">
+        <h3><i class="fas fa-list"></i> Penalty Records
+            <span class="badge badge-danger">{{ penalties|length }}</span>
+        </h3>
+    </div>
+    <div class="card-body p-0">
+        {% if penalties %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Student</th>
+                        <th>Reg. Number</th>
+                        <th>Room</th>
+                        <th>Date</th>
+                        <th>Absence Count</th>
+                        <th>Penalty</th>
+                        <th>Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in penalties %}
+                    <tr>
+                        <td class="td-num">{{ loop.index }}</td>
+                        <td>
+                            <div class="student-cell">
+                                <div class="student-avatar absent-avatar">{{ item.student_name[0] if item.student_name else '?' }}</div>
+                                <div class="student-name">{{ item.student_name or 'N/A' }}</div>
+                            </div>
+                        </td>
+                        <td><span class="reg-badge">{{ item.registration_number }}</span></td>
+                        <td><span class="room-badge">{{ item.room_number or '—' }}</span></td>
+                        <td>{{ item.date.strftime('%d %b %Y') if item.date else '—' }}</td>
+                        <td>
+                            <span class="badge {% if item.absence_count == 1 %}badge-warning{% elif item.absence_count == 2 %}badge-danger{% else %}badge-danger{% endif %}">
+                                {{ item.absence_count }}{{ 'st' if item.absence_count == 1 else ('nd' if item.absence_count == 2 else 'rd+') }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="penalty-amount">₹{{ item.penalty_amount }}</span>
+                        </td>
+                        <td style="font-size:0.8rem; color:#64748b">{{ item.reason }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state success-state">
+            <i class="fas fa-check-circle"></i>
+            <h3>No Penalties Yet</h3>
+            <p>No absence penalties have been applied. Students are attending regularly.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

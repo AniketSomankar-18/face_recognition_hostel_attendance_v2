@@ -1,0 +1,27 @@
+# Virtual environment
+venv/
+
+# Database
+database/hostel.db
+
+# Face dataset (large files)
+dataset/
+
+# Trained model
+models/encodings.pkl
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Reports
+static/reports/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
