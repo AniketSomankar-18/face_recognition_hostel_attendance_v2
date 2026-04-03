@@ -14,51 +14,40 @@
     </div>
 </div>
 
-<!-- Stats Cards -->
-<div class="stats-grid">
-    <div class="stat-card stat-total">
-        <div class="stat-icon"><i class="fas fa-users"></i></div>
-        <div class="stat-content">
-            <div class="stat-value">{{ summary.total }}</div>
-            <div class="stat-label">Total Students</div>
+<!-- Hostel Buildings Navigation -->
+<div class="hostel-grid">
+    {% for b in buildings %}
+    <a href="{{ url_for('building_view', name=b.id) }}" class="building-card {{ b.id }}">
+        <div class="building-img">
+            <i class="fas fa-hotel"></i>
         </div>
-    </div>
-    <div class="stat-card stat-present">
-        <div class="stat-icon"><i class="fas fa-user-check"></i></div>
-        <div class="stat-content">
-            <div class="stat-value">{{ summary.present }}</div>
-            <div class="stat-label">Present</div>
+        <div class="building-content">
+            <span class="building-name">{{ b.name }} Hostel</span>
+            <div class="attendance-progress">
+                <div class="progress-label">
+                    <span>Attendance Status</span>
+                    <span class="progress-count">{{ b.pct }}%</span>
+                </div>
+                <div class="progress-bar-wrap">
+                    <div class="progress-bar" style="width: {{ b.pct }}%; background: var(--accent);"></div>
+                </div>
+            </div>
+            <div class="building-stats">
+                <div class="b-stat">
+                    <span class="b-val">{{ b.total }}</span>
+                    <span class="b-label">Total</span>
+                </div>
+                <div class="b-stat">
+                    <span class="b-val">{{ b.present }}</span>
+                    <span class="b-label">Present</span>
+                </div>
+            </div>
         </div>
-    </div>
-    <div class="stat-card stat-late">
-        <div class="stat-icon"><i class="fas fa-clock"></i></div>
-        <div class="stat-content">
-            <div class="stat-value">{{ summary.late }}</div>
-            <div class="stat-label">Late</div>
-        </div>
-    </div>
-    <div class="stat-card stat-absent">
-        <div class="stat-icon"><i class="fas fa-user-times"></i></div>
-        <div class="stat-content">
-            <div class="stat-value">{{ summary.absent }}</div>
-            <div class="stat-label">Absent</div>
-        </div>
-    </div>
-    <div class="stat-card stat-leave">
-        <div class="stat-icon"><i class="fas fa-calendar-minus"></i></div>
-        <div class="stat-content">
-            <div class="stat-value">{{ summary.leave }}</div>
-            <div class="stat-label">On Leave</div>
-        </div>
-    </div>
-    <div class="stat-card stat-percentage">
-        <div class="stat-icon"><i class="fas fa-chart-pie"></i></div>
-        <div class="stat-content">
-            <div class="stat-value">{{ summary.percentage }}%</div>
-            <div class="stat-label">Attendance %</div>
-        </div>
-    </div>
+    </a>
+    {% endfor %}
 </div>
+
+<div class="mt-1"></div>
 
 <!-- Main Dashboard Row: Overview (wider) + Quick Actions -->
 <div class="dashboard-main-row">

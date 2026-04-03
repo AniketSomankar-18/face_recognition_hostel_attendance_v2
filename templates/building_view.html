@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ building_name }} Blocks – SGGS Hostel{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{{ url_for('dashboard') }}">Dashboard</a>
+    <i class="fas fa-chevron-right"></i>
+    <span>{{ building_name }} Hostel</span>
+</div>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-hotel"></i> {{ building_name }} Hostel</h1>
+        <p class="page-subtitle">Select a block to view floor-wise attendance</p>
+    </div>
+</div>
+
+<div class="block-grid">
+    {% for block, b_data in stats.blocks.items() %}
+    <a href="{{ url_for('block_view', building=building_name|lower, block=block) }}" class="block-card">
+        <div class="block-letter">{{ block }}</div>
+        <div class="block-info">
+            <h3 class="mb-0">Block {{ block }}</h3>
+            <div class="mini-label mt-1">{{ b_data.total }} Students</div>
+        </div>
+        <div class="attendance-progress" style="width: 100%; margin-top: 0.5rem;">
+            <div class="progress-bar-wrap">
+                {% set pct = (b_data.present / b_data.total * 100)|round(1) if b_data.total > 0 else 0 %}
+                <div class="progress-bar" style="width: {{ pct }}%; background: var(--accent);"></div>
+            </div>
+            <div class="progress-pct">{{ pct }}% Present</div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% endblock %}

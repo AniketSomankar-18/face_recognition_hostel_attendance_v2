@@ -255,3 +255,79 @@ def get_absent_students_today():
             })
 
     return result
+
+
+def get_hostel_structure_stats(building_code='N'):
+    """
+    Returns statistics for a building's blocks and rooms.
+    Format: N <block><floor><room> (e.g. N AG01)
+    """
+    today = date.today()
+    blocks = ['A', 'B', 'C', 'D']
+    floors = ['G', 'F']
+    rooms = [f"{i:02d}" for i in range(1, 9)]
+
+    stats = {
+        'total_students': 0,
+        'present_today': 0,
+        'blocks': {}
+    }
+
+    # Optimization: Get all students and attendance for today once
+    all_students = Student.query.filter(Student.room_number.like(f"{building_code} %")).all()
+    all_attendance = Attendance.query.filter_by(date=today).all()
+    attendance_map = {a.registration_number: a.status for a in all_attendance}
+
+    stats['total_students'] = len(all_students)
+    stats['present_today'] = sum(1 for s in all_students if attendance_map.get(s.registration_number) in ['Present', 'Late'])
+
+    for block in blocks:
+        block_students = [s for s in all_students if s.room_number.startswith(f"{building_code} {block}")]
+        block_present = sum(1 for s in block_students if attendance_map.get(s.registration_number) in ['Present', 'Late'])
+
+        stats['blocks'][block] = {
+            'total': len(block_students),
+            'present': block_present,
+            'floors': {}
+        }
+
+        for floor in floors:
+            floor_students = [s for s in block_students if s.room_number.startswith(f"{building_code} {block}{floor}")]
+            
+            stats['blocks'][block]['floors'][floor] = {
+                'rooms': {}
+            }
+
+            for room_num in rooms:
+                room_id = f"{building_code} {block}{floor}{room_num}"
+                room_students = [s for s in floor_students if s.room_number == room_id]
+                
+                if not room_students:
+                    stats['blocks'][block]['floors'][floor]['rooms'][room_num] = {
+                        'status': 'empty',
+                        'count': 0,
+                        'present': 0
+                    }
+                    continue
+
+                room_present = sum(1 for s in room_students if attendance_map.get(s.registration_number) in ['Present', 'Late'])
+                room_absent = len(room_students) - room_present
+                
+                status = 'full'
+                if room_absent > 0:
+                    status = 'absent'
+                # if room_present > 0 and any(attendance_map.get(s.registration_number) == 'Late' for s in room_students):
+                #     status = 'warning'
+
+                stats['blocks'][block]['floors'][floor]['rooms'][room_num] = {
+                    'status': status,
+                    'count': len(room_students),
+                    'present': room_present,
+                    'students': [{
+                        'name': s.name,
+                        'reg': s.registration_number,
+                        'status': attendance_map.get(s.registration_number, 'Unmarked')
+                    } for s in room_students]
+                }
+
+    return stats

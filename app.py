@@ -12,7 +12,8 @@ from models import db, User, Student, Attendance, Leave, Penalty
 from modules.face_recognition_module import FaceRecognitionModule
 from modules.attendance import (mark_attendance, get_today_summary,
                                  mark_absents_for_today, get_student_attendance_history,
-                                 get_calendar_data, get_absent_students_today)
+                                 get_calendar_data, get_absent_students_today,
+                                 get_hostel_structure_stats)
 from modules.reports import generate_excel_report, generate_absent_pdf
 from penalty_system import finalize_attendance, get_penalty_summary
 from email_service import mail, init_mail
@@ -84,12 +85,65 @@ def logout():
 @login_required
 def dashboard():
     summary = get_today_summary()
+    
+    # Building Summaries
+    n_stats = get_hostel_structure_stats('N')
+    s_stats = get_hostel_structure_stats('S')
+    
+    buildings = [
+        {
+            'id': 'nandagiri',
+            'name': 'Nandagiri',
+            'code': 'N',
+            'total': n_stats['total_students'],
+            'present': n_stats['present_today'],
+            'pct': round(n_stats['present_today'] / n_stats['total_students'] * 100, 1) if n_stats['total_students'] > 0 else 0
+        },
+        {
+            'id': 'sahyandri',
+            'name': 'Sahyandri',
+            'code': 'S',
+            'total': s_stats['total_students'],
+            'present': s_stats['present_today'],
+            'pct': round(s_stats['present_today'] / s_stats['total_students'] * 100, 1) if s_stats['total_students'] > 0 else 0
+        }
+    ]
+
     model_trained = face_module.is_model_trained()
     dataset_count = face_module.get_student_count_in_dataset()
     return render_template('dashboard.html',
                            summary=summary,
+                           buildings=buildings,
                            model_trained=model_trained,
                            dataset_count=dataset_count)
+
+
+@app.route('/dashboard/building/<name>')
+@login_required
+def building_view(name):
+    code = 'N' if name.lower() == 'nandagiri' else 'S'
+    stats = get_hostel_structure_stats(code)
+    return render_template('building_view.html', 
+                           building_name=name.capitalize(), 
+                           building_code=code,
+                           stats=stats)
+
+
+@app.route('/dashboard/building/<building>/block/<block>')
+@login_required
+def block_view(building, block):
+    code = 'N' if building.lower() == 'nandagiri' else 'S'
+    stats = get_hostel_structure_stats(code)
+    block_data = stats['blocks'].get(block.upper())
+    if not block_data:
+        flash(f"Block {block} not found.", "danger")
+        return redirect(url_for('dashboard'))
+        
+    return render_template('block_view.html',
+                           building_name=building.capitalize(),
+                           building_code=code,
+                           block_name=block.upper(),
+                           block_data=block_data)
 
 
 # ─── Students ─────────────────────────────────────────────────────────────────
@@ -583,8 +637,3 @@ if __name__ == '__main__':
     print("[INFO] URL: http://127.0.0.1:5000")
     print("[INFO] Login: warden / warden123")
     app.run(debug=True, host='0.0.0.0', port=5000, threaded=True)
-
-
-
-
-#adding temp comment
