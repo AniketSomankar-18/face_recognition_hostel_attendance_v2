@@ -24,67 +24,189 @@
     </div>
 </div>
 
-{% for floor in ['G', 'F'] %}
-<div class="floor-section">
-    <h2 class="floor-title">
-        <i class="fas fa-layer-group"></i> 
-        {% if floor == 'G' %}Ground Floor{% else %}First Floor{% endif %}
-    </h2>
-    <div class="room-grid">
-        {% for room_num, room in block_data.floors[floor].rooms.items() %}
-        <div class="room-tile room-{{ room.status }}" 
-             {% if room.status != 'empty' %}
-             onclick="showRoomDetails('{{ building_code }} {{ block_name }}{{ floor }}{{ room_num }}')"
-             {% endif %}>
-            
-            <div class="room-number">{{ floor }}{{ room_num }}</div>
-            <div class="room-status-dot status-bg-{{ room.status }}"></div>
-            
-            {% if room.status != 'empty' %}
-            <div class="room-occupancy">{{ room.present }}/{{ room.count }} Present</div>
-            <div class="room-members">
-                {% for member in room.students %}
-                <div class="member-dot status-bg-{{ 'present' if member.status in ['Present', 'Late'] else 'absent' }}" 
-                     title="{{ member.name }} ({{ member.reg }})">
-                    {{ member.name[0] }}
+<div class="block-view-container">
+    <div class="block-rooms-main">
+        {% set floors_order = ['G', 'F', 'S', 'T'] %}
+        {% for floor in floors_order if floor in block_data.floors %}
+        <div class="floor-section">
+            <h2 class="floor-title">
+                <i class="fas fa-layer-group"></i> 
+                {% if floor == 'G' %}Ground Floor{% else %}First Floor{% endif %}
+            </h2>
+            <div class="room-grid">
+                {% for room_num, room in block_data.floors[floor].rooms.items() %}
+                <div class="room-tile room-{{ room.status }}" 
+                     id="room-{{ floor }}{{ room_num }}"
+                     data-room-id="{{ floor }}{{ room_num }}"
+                     data-students='{{ room.students|tojson|safe }}'
+                     {% if room.status != 'empty' %}
+                     onclick="handleRoomClick(this)"
+                     {% endif %}>
+                    
+                    <div class="room-number">{{ floor }}{{ room_num }}</div>
+                    <div class="room-status-dot status-bg-{{ room.status }}"></div>
+                    
+                    {% if room.status != 'empty' %}
+                    <div class="room-occupancy">{{ room.present }}/{{ room.count }} Present</div>
+                    <div class="room-members">
+                        {% for member in room.students %}
+                        <div class="member-dot status-bg-{{ 'present' if member.status in ['Present', 'Late'] else 'absent' }}" 
+                             title="{{ member.name }} ({{ member.reg }})">
+                            {{ member.name[0] }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="room-occupancy">Vacant</div>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
-            {% else %}
-            <div class="room-occupancy">Vacant</div>
-            {% endif %}
         </div>
         {% endfor %}
     </div>
-</div>
-{% endfor %}
 
-<!-- Room Details Modal (Optional) -->
-<div id="roomModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
-    <div class="card" style="width:90%; max-width:500px;">
-        <div class="card-header">
-            <h3 id="modalTitle">Room Details</h3>
-            <button onclick="closeModal()" style="background:none; border:none; cursor:pointer; font-size:1.5rem;">×</button>
-        </div>
-        <div class="card-body" id="modalBody">
-            <!-- Content inject via JS -->
+    <!-- Right Sidebar for Room Details -->
+    <div class="block-details-sidebar">
+        <div id="room-details-card" class="card sticky-sidebar-card">
+            <div class="card-header">
+                <h3><i class="fas fa-info-circle"></i> Room Explorer</h3>
+            </div>
+            <div class="card-body" id="room-sidebar-body">
+                <div class="empty-state">
+                    <i class="fas fa-mouse-pointer"></i>
+                    <p>Click on a room to view student details</p>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<style>
+    .block-view-container {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 2rem;
+        align-items: flex-start;
+    }
+
+    @media (max-width: 1024px) {
+        .block-view-container {
+            grid-template-columns: 1fr;
+        }
+        .block-details-sidebar {
+            order: -1;
+            margin-bottom: 2rem;
+        }
+    }
+
+    .room-tile.active {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(26,86,219,0.2);
+        transform: translateY(-3px);
+        background: var(--accent-light);
+    }
+
+    .sidebar-student-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .sidebar-student-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.2s;
+    }
+
+    .sidebar-student-item:hover {
+        background: white;
+        border-color: var(--accent);
+        transform: translateX(4px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .sidebar-student-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: var(--accent);
+        color: white;
+        display: flex;
+        align-items: center; justify-content: center;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .sidebar-student-info { flex: 1; min-width: 0; }
+    .sidebar-student-name { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.1rem; color: var(--accent); }
+    .sidebar-student-reg { font-size: 0.75rem; color: var(--text-muted); font-family: monospace; }
+</style>
 
 {% endblock %}
 
 {% block scripts %}
 <script>
-    function showRoomDetails(roomId) {
-        // Simple modal implementation for now
-        // In a real app we'd fetch or use the passed data
-        // For now, let's just alert or log
-        console.log("Room clicked:", roomId);
+    let activeRoomId = null;
+
+    function handleRoomClick(element) {
+        const roomId = element.getAttribute('data-room-id');
+        const students = JSON.parse(element.getAttribute('data-students'));
+        showRoomDetails(roomId, students);
     }
-    
-    function closeModal() {
-        document.getElementById('roomModal').style.display = 'none';
+
+    function showRoomDetails(roomId, students) {
+        // Highlight active tile
+        if (activeRoomId) {
+            const oldTile = document.getElementById('room-' + activeRoomId);
+            if (oldTile) oldTile.classList.remove('active');
+        }
+        
+        const newTile = document.getElementById('room-' + roomId);
+        if (newTile) newTile.classList.add('active');
+        activeRoomId = roomId;
+
+        // Render Sidebar
+        const sidebarBody = document.getElementById('room-sidebar-body');
+        
+        let html = `
+            <div class="sidebar-header" style="margin-bottom: 1.25rem;">
+                <h4 style="font-size: 1.1rem; font-weight: 700; margin:0;">Room ${roomId}</h4>
+                <p style="font-size: 0.78rem; color: var(--text-muted); margin-top:0.2rem;">${students.length} Student(s) Assigned</p>
+            </div>
+            <div class="sidebar-student-list">
+        `;
+
+        students.forEach(s => {
+            const statusClass = s.status === 'Present' || s.status === 'Late' ? 'badge-success' : 'badge-danger';
+            const historyUrl = `/students/${s.reg}/view`;
+            
+            html += `
+                <a href="${historyUrl}" class="sidebar-student-item">
+                    <div class="sidebar-student-avatar">${s.name[0]}</div>
+                    <div class="sidebar-student-info">
+                        <div class="sidebar-student-name">${s.name}</div>
+                        <div class="sidebar-student-reg">${s.reg}</div>
+                    </div>
+                    <div class="badge ${statusClass}">${s.status}</div>
+                </a>
+            `;
+        });
+
+        html += `</div>`;
+        sidebarBody.innerHTML = html;
+        
+        // Mobile scroll to sidebar if needed (optional)
+        if (window.innerWidth <= 1024) {
+            document.querySelector('.block-details-sidebar').scrollIntoView({ behavior: 'smooth' });
+        }
     }
 </script>
 {% endblock %}

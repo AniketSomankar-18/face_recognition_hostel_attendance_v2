@@ -88,7 +88,7 @@ def dashboard():
     
     # Building Summaries
     n_stats = get_hostel_structure_stats('N')
-    s_stats = get_hostel_structure_stats('S')
+    s_stats = get_hostel_structure_stats('SH')
     
     buildings = [
         {
@@ -102,7 +102,7 @@ def dashboard():
         {
             'id': 'sahyandri',
             'name': 'Sahyandri',
-            'code': 'S',
+            'code': 'SH',
             'total': s_stats['total_students'],
             'present': s_stats['present_today'],
             'pct': round(s_stats['present_today'] / s_stats['total_students'] * 100, 1) if s_stats['total_students'] > 0 else 0
@@ -121,7 +121,7 @@ def dashboard():
 @app.route('/dashboard/building/<name>')
 @login_required
 def building_view(name):
-    code = 'N' if name.lower() == 'nandagiri' else 'S'
+    code = 'N' if name.lower() == 'nandagiri' else 'SH'
     stats = get_hostel_structure_stats(code)
     return render_template('building_view.html', 
                            building_name=name.capitalize(), 
@@ -132,7 +132,7 @@ def building_view(name):
 @app.route('/dashboard/building/<building>/block/<block>')
 @login_required
 def block_view(building, block):
-    code = 'N' if building.lower() == 'nandagiri' else 'S'
+    code = 'N' if building.lower() == 'nandagiri' else 'SH'
     stats = get_hostel_structure_stats(code)
     block_data = stats['blocks'].get(block.upper())
     if not block_data:
@@ -607,28 +607,8 @@ def init_database():
             db.session.add(warden)
             db.session.commit()
             print("[INFO] Default warden created.")
-        if Student.query.count() == 0:
-            samples = [
-                Student(registration_number='2023CS001', name='Rahul Kumar',
-                        room_number='A-101', department='Computer Science',
-                        phone='9876543210', parent_phone='9876543200', email='rahul@example.com'),
-                Student(registration_number='2023CS002', name='Priya Sharma',
-                        room_number='A-102', department='Computer Science',
-                        phone='9876543211', parent_phone='9876543201', email='priya@example.com'),
-                Student(registration_number='2023EC001', name='Arjun Patel',
-                        room_number='B-201', department='Electronics',
-                        phone='9876543212', parent_phone='9876543202', email='arjun@example.com'),
-                Student(registration_number='2023ME001', name='Sneha Reddy',
-                        room_number='B-202', department='Mechanical',
-                        phone='9876543213', parent_phone='9876543203', email='sneha@example.com'),
-                Student(registration_number='2023CE001', name='Vikram Singh',
-                        room_number='C-301', department='Civil',
-                        phone='9876543214', parent_phone='9876543204', email='vikram@example.com'),
-            ]
-            for s in samples:
-                db.session.add(s)
-            db.session.commit()
-            print("[INFO] Sample students added.")
+        # Students are seeded via seed_from_csv.py
+        pass
 
 
 if __name__ == '__main__':

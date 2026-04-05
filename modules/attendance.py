@@ -264,8 +264,12 @@ def get_hostel_structure_stats(building_code='N'):
     """
     today = date.today()
     blocks = ['A', 'B', 'C', 'D']
-    floors = ['G', 'F']
-    rooms = [f"{i:02d}" for i in range(1, 9)]
+    if building_code == 'SH':
+        floors = ['G', 'F', 'S', 'T']
+        rooms = [f"{i:02d}" for i in range(1, 11)]
+    else:
+        floors = ['G', 'F']
+        rooms = [f"{i:02d}" for i in range(1, 9)]
 
     stats = {
         'total_students': 0,
@@ -306,7 +310,8 @@ def get_hostel_structure_stats(building_code='N'):
                     stats['blocks'][block]['floors'][floor]['rooms'][room_num] = {
                         'status': 'empty',
                         'count': 0,
-                        'present': 0
+                        'present': 0,
+                        'students': []
                     }
                     continue
 
