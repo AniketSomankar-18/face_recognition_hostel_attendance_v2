@@ -92,7 +92,8 @@ def load_user(user_id):
 def enforce_auth():
     """Fail-safe: Redirect unauthenticated users to login for all restricted routes."""
     # List of endpoints allowed without login
-    whitelist = ['login', 'static']
+    # Added camera APIs to whitelist for Raspberry Pi client
+    whitelist = ['login', 'static', 'get_camera_state', 'recognize_frame']
     if not current_user.is_authenticated and request.endpoint not in whitelist:
         if request.endpoint:
             return redirect(url_for('login'))
@@ -526,7 +527,6 @@ def mark_manual():
 
 
 @app.route('/api/recognize_frame', methods=['POST'])
-@login_required
 def recognize_frame():
     data = request.get_json()
     image_data = data.get('image')
@@ -561,7 +561,6 @@ import time
 CAMERA_STATE_FILE = os.path.join('scratch', 'camera_state.json')
 
 @app.route('/api/camera/state', methods=['GET'])
-@login_required
 def get_camera_state():
     try:
         with open(CAMERA_STATE_FILE, 'r') as f:
