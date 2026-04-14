@@ -2,49 +2,51 @@
 {% block title %}{{ building_name }} Blocks – Hostel Excellence{% endblock %}
 
 {% block content %}
-<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-    <div>
-        <div class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
-            <a href="{{ url_for('dashboard') }}" class="hover:text-primary transition-colors">Dashboard</a>
-            <span class="material-symbols-outlined text-[12px]">chevron_right</span>
-            <span class="text-primary">{{ building_name }} Hostel</span>
+<div class="page-header">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 w-full">
+        <div>
+            <div class="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                <a href="{{ url_for('dashboard') }}" class="hover:text-indigo-600 transition-colors">Dashboard</a>
+                <span class="material-symbols-rounded text-[12px]">chevron_right</span>
+                <span class="text-indigo-600">{{ building_name }} Hostel</span>
+            </div>
+            <h1 class="page-title">
+                <span class="material-symbols-rounded">apartment</span>
+                {{ building_name }} Blocks
+            </h1>
+            <p class="text-slate-500 font-medium">Select a block to view floor-wise room attendance</p>
         </div>
-        <h1 class="text-3xl font-extrabold text-blue-900 tracking-tight flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">apartment</span>
-            {{ building_name }} Blocks
-        </h1>
-        <p class="text-slate-500 font-medium mt-1">Select a block to view floor-wise room attendance</p>
     </div>
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
     {% for block, b_data in stats.blocks.items() %}
     {% set pct = (b_data.present / b_data.total * 100)|round(1) if b_data.total > 0 else 0 %}
-    <a href="{{ url_for('block_view', building=building_name|lower, block=block) }}" class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10 hover:border-primary/40 hover:-translate-y-1 transition-all group flex flex-col justify-between min-h-[200px] relative overflow-hidden">
+    <a href="{{ url_for('block_view', building=building_name|lower, block=block) }}" class="card group flex flex-col justify-between min-h-[220px] relative overflow-hidden hover:scale-[1.02] transition-all">
         
         <!-- Decorative bg -->
-        <div class="absolute -right-8 -top-8 text-9xl text-slate-50 font-black tracking-tighter opacity-70 pointer-events-none group-hover:scale-110 transition-transform duration-700">
+        <div class="absolute -right-6 -top-6 text-9xl text-slate-50 font-black tracking-tighter opacity-50 pointer-events-none group-hover:scale-110 transition-transform duration-700">
             {{ block }}
         </div>
 
-        <div class="relative z-10">
+        <div class="relative z-10 flex flex-col h-full">
             <div class="flex justify-between items-start mb-6">
-                <div class="w-16 h-16 bg-primary-container text-white rounded-xl shadow-inner border border-white flex justify-center items-center font-black text-3xl">
+                <div class="w-16 h-16 bg-indigo-600 text-white rounded-2xl shadow-lg border border-white/20 flex justify-center items-center font-black text-3xl">
                     {{ block }}
                 </div>
-                <div class="bg-surface-container-high px-3 py-1 rounded-full text-xs font-bold text-on-surface-variant flex items-center gap-1 border border-outline-variant/20">
-                    <span class="material-symbols-outlined text-[14px]">group</span> {{ b_data.total }} Residents
+                <div class="bg-indigo-50 px-3 py-1.5 rounded-full text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-1.5 border border-indigo-100">
+                    <span class="material-symbols-rounded text-xs">group</span> {{ b_data.total }} RESIDENTS
                 </div>
             </div>
             
-            <div class="mt-auto pt-4">
-                <div class="flex justify-between items-end mb-2">
-                    <span class="text-slate-500 font-bold text-sm tracking-wide">Occupancy</span>
-                    <span class="text-xl font-black text-green-600">{{ pct }}%</span>
+            <div class="mt-auto">
+                <div class="flex justify-between items-end mb-3">
+                    <span class="text-slate-400 font-black text-[10px] uppercase tracking-widest">Marked Presence</span>
+                    <span class="text-2xl font-black text-indigo-600">{{ pct }}%</span>
                 </div>
                 
                 <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                    <div class="bg-green-500 h-full rounded-full transition-all duration-1000" style="width: {{ pct }}%"></div>
+                    <div class="bg-indigo-600 h-full rounded-full transition-all duration-1000" style="width: {{ pct }}%"></div>
                 </div>
             </div>
         </div>

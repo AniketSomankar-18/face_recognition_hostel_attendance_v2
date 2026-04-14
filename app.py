@@ -1,4 +1,6 @@
 import os
+import fcntl
+import atexit
 import base64
 from datetime import datetime, date
 
@@ -48,12 +50,35 @@ scheduler.add_job(
     'cron', hour=21, minute=30,
     id='auto_penalty'
 )
-scheduler.start()
+
+# Use file lock to ensure only one gunicorn worker starts the scheduler
+try:
+    scheduler_lock_file = open("scheduler.lock", "wb")
+    fcntl.flock(scheduler_lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    scheduler.start()
+    atexit.register(lambda: fcntl.flock(scheduler_lock_file, fcntl.LOCK_UN))
+    print("[INFO] Scheduler started by master lock worker.")
+except BlockingIOError:
+    # Another worker already got the lock
+    pass
+except IOError:
+    # Fallback for some systems where IOError is raised instead of BlockingIOError
+    pass
 
 # ─── Login ────────────────────────────────────────────────────────────────────
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
+
+
+@app.before_request
+def enforce_auth():
+    """Fail-safe: Redirect unauthenticated users to login for all restricted routes."""
+    # List of endpoints allowed without login
+    whitelist = ['login', 'static']
+    if not current_user.is_authenticated and request.endpoint not in whitelist:
+        if request.endpoint:
+            return redirect(url_for('login'))
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -81,61 +106,75 @@ def logout():
 
 
 # ─── Dashboard ────────────────────────────────────────────────────────────────
+def get_code_from_name(name):
+    mapping = {
+        'nandagiri': 'N', 'sahyadri': 'SH', 'sahyandri': 'SH',
+        'devgiri': 'D', 'krishna': 'K', 'godavari': 'G'
+    }
+    return mapping.get(name.lower(), name.upper())
+
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    summary = get_today_summary()
+    hostel_code = current_user.hostel_code
+    summary = get_today_summary(hostel_code)
     
-    # Building Summaries
-    n_stats = get_hostel_structure_stats('N')
-    s_stats = get_hostel_structure_stats('SH')
-    
-    buildings = [
-        {
-            'id': 'nandagiri',
-            'name': 'Nandagiri',
-            'code': 'N',
-            'total': n_stats['total_students'],
-            'present': n_stats['present_today'],
-            'pct': round(n_stats['present_today'] / n_stats['total_students'] * 100, 1) if n_stats['total_students'] > 0 else 0
-        },
-        {
-            'id': 'sahyandri',
-            'name': 'Sahyandri',
-            'code': 'SH',
-            'total': s_stats['total_students'],
-            'present': s_stats['present_today'],
-            'pct': round(s_stats['present_today'] / s_stats['total_students'] * 100, 1) if s_stats['total_students'] > 0 else 0
-        }
+    # Building Metadata
+    all_hostels = [
+        {'id': 'N', 'name': 'Nandagiri', 'gender': 'Boys'},
+        {'id': 'SH', 'name': 'Sahyadri', 'gender': 'Boys'},
+        {'id': 'D', 'name': 'Devgiri', 'gender': 'Girls'},
+        {'id': 'K', 'name': 'Krishna', 'gender': 'Girls'},
+        {'id': 'G', 'name': 'Godavari', 'gender': 'Girls'}
     ]
-
-    model_trained = face_module.is_model_trained()
-    dataset_count = face_module.get_student_count_in_dataset()
-    historical_stats = get_historical_stats(30)
     
-    return render_template('dashboard.html',
-                           summary=summary,
-                           buildings=buildings,
-                           model_trained=model_trained,
-                           dataset_count=dataset_count,
-                           historical_stats=historical_stats)
+    buildings = []
+    for h in all_hostels:
+        # Filter for wardens
+        if not current_user.is_rector and h['id'] != hostel_code:
+            continue
+            
+        stats = get_hostel_structure_stats(h['id'])
+        buildings.append({
+            'id': h['id'],
+            'name': h['name'],
+            'gender': h['gender'],
+            'total': stats['total_students'],
+            'present': stats['present_today'],
+            'pct': round(stats['present_today'] / stats['total_students'] * 100, 1) if stats['total_students'] > 0 else 0
+        })
+
+    historical_stats = get_historical_stats(30, hostel_code)
+    model_trained = os.path.exists('trainer.yml')
+    
+    return render_template('dashboard.html', 
+                          summary=summary, 
+                          buildings=buildings,
+                          historical_stats=historical_stats,
+                          model_trained=model_trained)
 
 
 @app.route('/dashboard/building/<name>')
 @login_required
 def building_view(name):
-    code = 'N' if name.lower() == 'nandagiri' else 'SH'
-    stats = get_hostel_structure_stats(code)
+    code = get_code_from_name(name)
+    # RBAC: Check if warden is allowed to view this building
+    if not current_user.is_rector and code != current_user.hostel_code:
+        flash("You do not have permission to view other hostels.", "error")
+        return redirect(url_for('dashboard'))
+        
+    res = get_hostel_structure_stats(code)
     return render_template('building_view.html', 
                            building_name=name.capitalize(), 
-                           building_code=code,
-                           stats=stats)
+                           building_code=name.upper(),
+                           stats=res)
 
 
 @app.route('/dashboard/building/<building>/block/<block>')
 @login_required
 def block_view(building, block):
-    code = 'N' if building.lower() == 'nandagiri' else 'SH'
+    code = get_code_from_name(building)
     stats = get_hostel_structure_stats(code)
     block_data = stats['blocks'].get(block.upper())
     if not block_data:
@@ -160,23 +199,48 @@ def search_students_global():
 @app.route('/students')
 @login_required
 def students():
-    search = request.args.get('search', '')
-    dept = request.args.get('dept', '')
+    search = request.args.get('search', '').strip()
+    selected_dept = request.args.get('dept', '').strip()
+
+    # Base query for students
     query = Student.query.filter_by(is_active=True)
+    if not current_user.is_rector:
+        query = query.filter(Student.room_number.like(f"{current_user.hostel_code} %"))
+    
+    # 1. Fetch unique departments efficiently using distinct()
+    dept_query = db.session.query(Student.department).filter(Student.is_active == True)
+    if not current_user.is_rector:
+        dept_query = dept_query.filter(Student.room_number.like(f"{current_user.hostel_code} %"))
+    
+    departments = [d[0] for d in dept_query.distinct().all() if d[0]]
+    departments.sort()
+
+    # 2. Apply directory filters
     if search:
-        query = query.filter(
-            (Student.name.ilike(f'%{search}%')) |
-            (Student.registration_number.ilike(f'%{search}%')) |
-            (Student.room_number.ilike(f'%{search}%'))
-        )
-    if dept:
-        query = query.filter(Student.department == dept)
-    students_list = query.order_by(Student.room_number).all()
-    departments = [d[0] for d in db.session.query(Student.department).distinct().all()]
-    student_data = [{'student': s, 'img_count': face_module.get_face_image_count(s.registration_number)}
-                    for s in students_list]
-    return render_template('students.html', student_data=student_data,
-                           departments=departments, search=search, selected_dept=dept)
+        query = query.filter(db.or_(
+            Student.name.ilike(f"%{search}%"),
+            Student.registration_number.ilike(f"%{search}%"),
+            Student.room_number.ilike(f"%{search}%")
+        ))
+    
+    if selected_dept:
+        query = query.filter(Student.department == selected_dept)
+    
+    students_list = query.order_by(Student.name).all()
+    
+    # 3. Context for modernized template
+    student_data = []
+    for s in students_list:
+        student_data.append({
+            'student': s,
+            'img_count': s.face_samples_count
+        })
+        
+    return render_template('students.html', 
+                          student_data=student_data, 
+                          departments=departments,
+                          search=search,
+                          selected_dept=selected_dept)
 
 
 @app.route('/students/register', methods=['GET', 'POST'])
@@ -236,23 +300,14 @@ def delete_student(reg_num):
 @login_required
 def view_student(reg_num):
     student = Student.query.filter_by(registration_number=reg_num).first_or_404()
-    today = date.today()
-    month = int(request.args.get('month', today.month))
-    year = int(request.args.get('year', today.year))
-    cal_data = get_calendar_data(reg_num, month, year)
-    attendance_records = get_student_attendance_history(reg_num)
-    img_count = face_module.get_face_image_count(reg_num)
-    present = sum(1 for r in attendance_records if r.status == 'Present')
-    late = sum(1 for r in attendance_records if r.status == 'Late')
-    absent = sum(1 for r in attendance_records if r.status == 'Absent')
-    on_leave = sum(1 for r in attendance_records if r.status == 'Leave')
-    total = len(attendance_records)
-    pct = round((present + late) / total * 100, 1) if total > 0 else 0
-    return render_template('history.html', student=student, cal_data=cal_data,
-                           attendance_records=attendance_records[:30],
-                           stats={'present': present, 'late': late, 'absent': absent,
-                                  'leave': on_leave, 'total': total, 'percentage': pct},
-                           img_count=img_count, month=month, year=year)
+    
+    # RBAC: Access check
+    if not current_user.is_rector and not student.room_number.startswith(current_user.hostel_code):
+        flash("Access Denied: You can only view students from your assigned hostel.", "error")
+        return redirect(url_for('students'))
+        
+    recent_attendance = Attendance.query.filter_by(registration_number=reg_num).order_by(Attendance.date.desc()).limit(10).all()
+    return render_template('student_detail.html', student=student, attendance=recent_attendance)
 
 
 # ─── Face Capture ─────────────────────────────────────────────────────────────
@@ -260,7 +315,7 @@ def view_student(reg_num):
 @login_required
 def capture_face(reg_num):
     student = Student.query.filter_by(registration_number=reg_num).first_or_404()
-    img_count = face_module.get_face_image_count(reg_num)
+    img_count = student.face_samples_count
     return render_template('capture_face.html', student=student,
                            img_count=img_count, required=Config.FACE_IMAGES_REQUIRED)
 
@@ -298,10 +353,14 @@ def capture_frame():
         x, y, w, h = faces[0]
         face_img = frame[y:y+h, x:x+w]
         cv2.imwrite(os.path.join(save_dir, f"{existing + 1}.jpg"), face_img)
+        
         new_count = existing + 1
+        student.face_samples_count = new_count
+        
         if new_count >= Config.FACE_IMAGES_REQUIRED:
             student.face_encoded = True
-            db.session.commit()
+            
+        db.session.commit()
         return jsonify({'success': True, 'message': f'Image {new_count} captured',
                         'count': new_count, 'required': Config.FACE_IMAGES_REQUIRED,
                         'complete': new_count >= Config.FACE_IMAGES_REQUIRED})
@@ -340,13 +399,22 @@ def train_model():
 @login_required
 def attendance():
     summary = get_today_summary()
-    today_records = Attendance.query.filter_by(date=date.today()).all()
-    records_detail = []
-    for record in today_records:
-        student = Student.query.filter_by(registration_number=record.registration_number).first()
-        if student:
-            records_detail.append({'student': student, 'status': record.status,
-                                    'marked_at': record.marked_at, 'marked_by': record.marked_by})
+    
+    # Bulk Join Query to prevent N+1 bottlenecks
+    records_with_students = db.session.query(Attendance, Student).join(
+        Student, Attendance.registration_number == Student.registration_number
+    ).filter(Attendance.date == date.today()).all()
+
+    records_detail = [
+        {
+            'student': student,
+            'status': record.status,
+            'marked_at': record.marked_at,
+            'marked_by': record.marked_by
+        }
+        for record, student in records_with_students
+    ]
+
     model_trained = face_module.is_model_trained()
     return render_template('attendance.html', summary=summary,
                            records=records_detail, model_trained=model_trained)
@@ -365,30 +433,45 @@ def generate_video_frames():
     if not cap.isOpened():
         yield b'--frame\r\nContent-Type: image/jpeg\r\n\r\n\r\n'
         return
+        
     with app.app_context():
         students = Student.query.filter_by(is_active=True).all()
         student_map = {s.registration_number: s.name for s in students}
+        
     recently_marked = {}
     COOLDOWN = 10
+    frame_count = 0
+    results = [] # Persist results across skipped frames
+    
     while True:
         ret, frame = cap.read()
         if not ret:
             break
-        results = face_module.recognize_face(frame)
-        with app.app_context():
-            for result in results:
-                reg_num = result['reg_num']
-                if reg_num:
-                    now = time.time()
-                    if now - recently_marked.get(reg_num, 0) > COOLDOWN:
-                        mark_attendance(reg_num, 'face_recognition')
-                        recently_marked[reg_num] = now
+            
+        frame_count += 1
+        # Process recognition every 5th frame for performance
+        if frame_count % 5 == 0:
+            results = face_module.recognize_face(frame)
+            with app.app_context():
+                for result in results:
+                    reg_num = result['reg_num']
+                    if reg_num:
+                        now = time.time()
+                        if now - recently_marked.get(reg_num, 0) > COOLDOWN:
+                            mark_attendance(reg_num, 'face_recognition')
+                            recently_marked[reg_num] = now
+                            
+        # Always draw the last known results on the current frame
         frame = face_module.draw_recognition_results(frame, results, student_map)
+        
         cv2.putText(frame, datetime.now().strftime('%I:%M:%S %p'),
                     (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
-        ret2, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                    
+        # Slightly lower quality for better streaming performance
+        ret2, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
         if ret2:
             yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+            
     cap.release()
 
 
@@ -451,9 +534,13 @@ def recognize_frame():
 @app.route('/leave')
 @login_required
 def leave_management():
-    leaves = Leave.query.order_by(Leave.created_at.desc()).all()
-    leave_data = [{'leave': l, 'student': Student.query.filter_by(registration_number=l.registration_number).first()}
-                  for l in leaves]
+    # Bulk Join Query to prevent N+1 bottlenecks
+    leaves_with_students = db.session.query(Leave, Student).outerjoin(
+        Student, Leave.registration_number == Student.registration_number
+    ).order_by(Leave.created_at.desc()).all()
+    
+    leave_data = [{'leave': l, 'student': s} for l, s in leaves_with_students]
+    
     students = Student.query.filter_by(is_active=True).order_by(Student.name).all()
     return render_template('leave_management.html', leave_data=leave_data, students=students)
 
@@ -507,27 +594,66 @@ def delete_leave(leave_id):
 
 
 # ─── Absent List  (FIX: pass `now`) ──────────────────────────────────────────
-@app.route('/absent_list')
+@app.route('/reports/absent')
 @login_required
 def absent_list():
-    today = datetime.now().date()          # ← FIX: always defined
-    absent_students = get_absent_students_today()
-    summary = get_today_summary()
-    return render_template('absent_list.html',
-                           absent_students=absent_students,
-                           summary=summary,
-                           now=today)                   # ← FIX: passed to template
+    # Filter absent list by hostel
+    query = db.session.query(Attendance, Student).join(Student, Attendance.registration_number == Student.registration_number).filter(
+        Attendance.date == date.today(),
+        Attendance.status == 'Absent'
+    )
+    
+    if not current_user.is_rector:
+        query = query.filter(Student.room_number.like(f"{current_user.hostel_code} %"))
+        
+    absentees = query.all()
+    absent_students = [a[1] for a in absentees]
+    
+    # Add summary for KPI cards
+    summary = get_today_summary(current_user.hostel_code if not current_user.is_rector else None)
+    
+    return render_template('absent_list.html', 
+                          absent_students=absent_students, 
+                          summary=summary,
+                          now=datetime.now())
 
 
 # ─── Penalties ────────────────────────────────────────────────────────────────
 @app.route('/penalties')
 @login_required
 def penalties_view():
-    penalties, total_penalty, students_penalised = get_penalty_summary()
+    hostel_code = current_user.hostel_code
+    
+    # Detailed records for the log table
+    query = db.session.query(Penalty, Student).join(
+        Student, Penalty.registration_number == Student.registration_number
+    )
+    if not current_user.is_rector:
+        query = query.filter(Student.room_number.like(f"{hostel_code} %"))
+    
+    results = query.order_by(Penalty.date.desc()).all()
+    
+    penalties_log = []
+    total_penalty = 0
+    unique_students = set()
+    
+    for p, s in results:
+        total_penalty += p.penalty_amount
+        unique_students.add(p.registration_number)
+        penalties_log.append({
+            'student_name': s.name,
+            'registration_number': p.registration_number,
+            'room_number': s.room_number,
+            'date': p.date,
+            'absence_count': p.absence_count,
+            'penalty_amount': p.penalty_amount,
+            'reason': p.reason
+        })
+    
     return render_template('penalties.html',
-                           penalties=penalties,
+                           penalties=penalties_log,
                            total_penalty=total_penalty,
-                           students_penalised=students_penalised,
+                           students_penalised=len(unique_students),
                            today=date.today().strftime('%d %b %Y'))
 
 
@@ -565,7 +691,8 @@ def download_excel():
     year = int(request.args.get('year', today.year))
     try:
         import calendar
-        output = generate_excel_report(month, year)
+        # Filter is handled inside report generator if we pass it
+        output = generate_excel_report(month, year, current_user.hostel_code)
         filename = f'attendance_{calendar.month_name[month]}_{year}.xlsx'
         return send_file(output,
                          mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -584,7 +711,7 @@ def download_pdf():
     except ValueError:
         target_date = date.today()
     try:
-        output = generate_absent_pdf(target_date)
+        output = generate_absent_pdf(target_date, current_user.hostel_code)
         filename = f'absent_report_{target_date.strftime("%d_%m_%Y")}.pdf'
         return send_file(output, mimetype='application/pdf',
                          as_attachment=True, download_name=filename)
@@ -616,11 +743,11 @@ def init_database():
     with app.app_context():
         db.create_all()
         if not User.query.filter_by(username='warden').first():
-            warden = User(username='warden', role='warden')
+            warden = User(username='warden', role='warden', hostel_code='N')
             warden.set_password('warden123')
             db.session.add(warden)
             db.session.commit()
-            print("[INFO] Default warden created.")
+            print("[INFO] Default warden created for Nandagiri Hostel.")
         # Students are seeded via seed_from_csv.py
         pass
 

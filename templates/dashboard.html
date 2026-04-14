@@ -2,222 +2,222 @@
 {% block title %}Dashboard – Hostel Excellence{% endblock %}
 
 {% block content %}
-<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-    <div>
-        <h3 class="text-3xl font-extrabold text-on-surface tracking-tight">Main Dashboard</h3>
-        <p class="text-on-surface-variant mt-1 font-medium">{{ summary.day }}, {{ summary.date }}</p>
-    </div>
-    <div class="flex items-center gap-3">
-        {% if model_trained %}
-        <span class="flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-700 text-xs font-bold rounded-lg">
-            <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">check_circle</span>
-            Model Ready
-        </span>
-        {% else %}
-        <span class="flex items-center gap-2 px-3 py-1.5 bg-error-container text-on-error-container text-xs font-bold rounded-lg">
-            <span class="material-symbols-outlined text-sm">error</span>
-            Model Not Trained
-        </span>
-        {% endif %}
-    </div>
-</div>
-
-<!-- KPI Stats Row -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-    <!-- Present -->
-    <div class="bg-surface-container-lowest p-6 rounded-xl border-t-4 border-green-500 shadow-sm flex flex-col">
-        <div class="flex justify-between items-start mb-4">
-            <span class="material-symbols-outlined text-green-600 bg-green-50 p-2 rounded-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
-            <span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">{{ summary.percentage }}%</span>
+<div class="page-header">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
+        <div>
+            <h1 class="page-title">
+                <span class="material-symbols-rounded">dashboard</span>
+                {% if current_user.role == 'rector' %}Main Dashboard{% elif buildings %}{{ buildings[0].name }} Overview{% else %}Warden Dashboard{% endif %}
+            </h1>
+            <p class="text-slate-500 font-medium mt-1">{{ summary.day }}, {{ summary.date }}</p>
         </div>
-        <p class="text-on-surface-variant text-sm font-semibold uppercase tracking-wider">Present</p>
-        <h4 class="text-3xl font-black text-on-surface mt-1">{{ summary.present }}</h4>
-    </div>
-    <!-- Absent -->
-    <div class="bg-surface-container-lowest p-6 rounded-xl border-t-4 border-error shadow-sm flex flex-col">
-        <div class="flex justify-between items-start mb-4">
-            <span class="material-symbols-outlined text-error bg-error-container/20 p-2 rounded-lg" style="font-variation-settings: 'FILL' 1;">cancel</span>
-        </div>
-        <p class="text-on-surface-variant text-sm font-semibold uppercase tracking-wider">Absent</p>
-        <h4 class="text-3xl font-black text-on-surface mt-1">{{ summary.absent }}</h4>
-    </div>
-    <!-- Late -->
-    <div class="bg-surface-container-lowest p-6 rounded-xl border-t-4 border-on-tertiary-container shadow-sm flex flex-col">
-        <div class="flex justify-between items-start mb-4">
-            <span class="material-symbols-outlined text-on-tertiary-container bg-tertiary-fixed/30 p-2 rounded-lg" style="font-variation-settings: 'FILL' 1;">schedule</span>
-        </div>
-        <p class="text-on-surface-variant text-sm font-semibold uppercase tracking-wider">Late</p>
-        <h4 class="text-3xl font-black text-on-surface mt-1">{{ summary.late }}</h4>
-    </div>
-    <!-- Leave -->
-    <div class="bg-surface-container-lowest p-6 rounded-xl border-t-4 border-primary shadow-sm flex flex-col">
-        <div class="flex justify-between items-start mb-4">
-            <span class="material-symbols-outlined text-primary bg-primary-fixed/30 p-2 rounded-lg" style="font-variation-settings: 'FILL' 1;">event_note</span>
-        </div>
-        <p class="text-on-surface-variant text-sm font-semibold uppercase tracking-wider">On Leave</p>
-        <h4 class="text-3xl font-black text-on-surface mt-1">{{ summary.leave }}</h4>
-    </div>
-</div>
-
-<!-- Main Layout: Bento Grid Style -->
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-    <!-- Left Column: Hostel Occupancy and Trends -->
-    <div class="lg:col-span-8 space-y-8">
         
+        <div class="flex items-center gap-3">
+            {% if model_trained %}
+            <div class="badge badge-present gap-1.5 py-2 px-4 rounded-xl">
+                <span class="material-symbols-rounded text-sm">check_circle</span>
+                <span>AI Model Ready</span>
+            </div>
+            {% else %}
+            <div class="badge badge-absent gap-1.5 py-2 px-4 rounded-xl">
+                <span class="material-symbols-rounded text-sm">warning</span>
+                <span>Model Not Trained</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- KPI Stats Grid -->
+<div class="stats-grid">
+    <!-- Present -->
+    <div class="stat-card stat-present">
+        <div class="stat-icon">
+            <span class="material-symbols-rounded">check_circle</span>
+        </div>
+        <div class="stat-value">{{ summary.present }}</div>
+        <div class="stat-label">Present Today</div>
+        <div class="absolute top-4 right-4 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+            {{ summary.percentage }}%
+        </div>
+    </div>
+
+    <!-- Absent -->
+    <div class="stat-card stat-absent">
+        <div class="stat-icon">
+            <span class="material-symbols-rounded">cancel</span>
+        </div>
+        <div class="stat-value">{{ summary.absent }}</div>
+        <div class="stat-label">Absent Students</div>
+    </div>
+
+    <!-- Late -->
+    <div class="stat-card stat-late">
+        <div class="stat-icon">
+            <span class="material-symbols-rounded">schedule</span>
+        </div>
+        <div class="stat-value">{{ summary.late }}</div>
+        <div class="stat-label">Late Arrivals</div>
+    </div>
+
+    <!-- Overall Percentage -->
+    <div class="stat-card stat-percentage">
+        <div class="stat-icon">
+            <span class="material-symbols-rounded">analytics</span>
+        </div>
+        <div class="stat-value">{{ summary.percentage }}<span class="text-xl">%</span></div>
+        <div class="stat-label">Daily Average</div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <!-- Left: Hostel Status -->
+    <div class="lg:col-span-8 space-y-8">
         <div class="flex items-center justify-between">
-            <h4 class="text-xl font-bold text-primary flex items-center gap-2">
-                <span class="w-1 h-6 bg-primary rounded-full"></span>
-                Hostel Occupancy
-            </h4>
+            <h2 class="text-xl font-800 text-slate-900 flex items-center gap-2">
+                <span class="w-1.5 h-6 bg-indigo-600 rounded-full"></span>
+                Hostel Buildings
+            </h2>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             {% for b in buildings %}
-            <a href="{{ url_for('building_view', name=b.id) }}" class="block bg-surface-container-lowest p-8 rounded-xl shadow-sm border border-outline-variant/10 relative overflow-hidden group hover:border-primary/30 transition-colors">
-                <div class="absolute top-0 right-0 w-32 h-32 bg-slate-50 -mr-16 -mt-16 rounded-full transition-transform group-hover:scale-110"></div>
-                <div class="relative z-10">
+            <div class="card p-0">
+                <div class="p-6">
                     <div class="flex justify-between items-start mb-6">
                         <div>
-                            <h5 class="text-2xl font-extrabold text-blue-900">{{ b.name }} Hostel</h5>
-                            <p class="text-sm text-slate-500 font-medium">Campus Sector</p>
+                            <h3 class="text-xl font-800 text-slate-900">{{ b.name }} Hostel</h3>
+                            <p class="text-sm text-slate-500 font-medium tracking-tight">{% if b.gender == 'Boys' %}Boys' Residence{% else %}Girls' Residence{% endif %}</p>
                         </div>
-                        <span class="bg-green-100 text-green-700 text-xs font-black px-3 py-1 rounded-full uppercase tracking-widest">Active</span>
+                        <a href="{{ url_for('building_view', name=b.id) }}" class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-all">
+                            <span class="material-symbols-rounded">arrow_forward</span>
+                        </a>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4 mb-8">
-                        <div>
-                            <p class="text-xs text-slate-400 uppercase font-bold tracking-tighter">Total Students</p>
-                            <p class="text-xl font-black text-slate-800">{{ b.total }}</p>
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total</p>
+                            <p class="text-lg font-black text-slate-800">{{ b.total }}</p>
                         </div>
-                        <div>
-                            <p class="text-xs text-slate-400 uppercase font-bold tracking-tighter">Present Now</p>
-                            <p class="text-xl font-black text-green-600">{{ b.present }}</p>
+                        <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                            <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1">Present</p>
+                            <p class="text-lg font-black text-emerald-700">{{ b.present }}</p>
                         </div>
                     </div>
 
-                    <div class="space-y-2">
-                        <div class="flex justify-between items-center text-sm font-bold">
-                            <span class="text-slate-600">Daily Attendance</span>
-                            <span class="text-green-600">{{ b.pct }}%</span>
+                    <div class="occupancy-stat">
+                        <div class="flex justify-between items-end mb-2">
+                            <span class="text-xs font-bold text-slate-500">Attendance Progress</span>
+                            <span class="text-sm font-black text-indigo-600">{{ b.pct }}%</span>
                         </div>
-                        <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                            <div class="bg-green-500 h-full rounded-full transition-all duration-1000" style="width: {{ b.pct }}%"></div>
+                        <div class="progress-container">
+                            <div class="progress-bar" style="width: {{ b.pct }}%"></div>
                         </div>
                     </div>
                 </div>
-            </a>
+            </div>
             {% endfor %}
         </div>
 
-        <!-- Trend Chart Area -->
-        <div class="bg-surface-container-lowest p-8 rounded-xl shadow-sm border border-outline-variant/10">
-            <div class="flex justify-between items-center mb-8">
-                <div>
-                    <h4 class="text-lg font-bold text-blue-900">Attendance Trends</h4>
-                    <p class="text-sm text-slate-500">Last 30 Days (Campus-wide)</p>
-                </div>
+        <!-- Trend Analysis -->
+        <div class="card p-8 bg-white border-slate-100">
+            <div class="mb-8">
+                <h3 class="text-lg font-800 text-slate-900">Attendance History</h3>
+                <p class="text-sm text-slate-500">Global performance trends over the last 30 days</p>
             </div>
-            
-            <div class="relative h-64 w-full">
+            <div class="h-64 sm:h-80 w-full">
                 <canvas id="trendChart"></canvas>
             </div>
         </div>
-
     </div>
 
-    <!-- Right Sidebar Column -->
+    <!-- Right: Actions & Circular Summary -->
     <div class="lg:col-span-4 space-y-8">
-        
-        <!-- Quick Actions Grid -->
         <div class="space-y-4">
-            <h4 class="text-sm font-black text-slate-400 uppercase tracking-widest px-1">Quick Actions</h4>
-            <div class="grid grid-cols-2 gap-4">
-                <a href="{{ url_for('attendance') }}" class="aspect-square bg-primary-container text-white p-4 rounded-xl flex flex-col items-center justify-center gap-2 shadow-sm hover:translate-y-[-2px] transition-all group">
-                    <span class="material-symbols-outlined text-3xl transition-transform group-hover:scale-110" style="font-variation-settings: 'FILL' 1;">fact_check</span>
-                    <span class="text-xs font-bold text-center">Mark<br>Attendance</span>
+            <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Control Center</h2>
+            <div class="quick-actions-grid">
+                <a href="{{ url_for('attendance') }}" class="action-btn group">
+                    <span class="material-symbols-rounded">fact_check</span>
+                    <span>Attendance</span>
                 </a>
-                
-                <a href="{{ url_for('register_student') }}" class="aspect-square bg-surface-container-lowest text-primary p-4 rounded-xl flex flex-col items-center justify-center gap-2 border border-outline-variant/10 shadow-sm hover:translate-y-[-2px] transition-all group hover:bg-slate-50">
-                    <span class="material-symbols-outlined text-3xl transition-transform group-hover:scale-110">person_add</span>
-                    <span class="text-xs font-bold text-center">Add<br>Student</span>
+                <a href="{{ url_for('register_student') }}" class="action-btn group">
+                    <span class="material-symbols-rounded">person_add</span>
+                    <span>Add Student</span>
                 </a>
-                
-                <a href="{{ url_for('absent_list') }}" class="aspect-square bg-surface-container-lowest text-primary p-4 rounded-xl flex flex-col items-center justify-center gap-2 border border-outline-variant/10 shadow-sm hover:translate-y-[-2px] transition-all group hover:bg-slate-50">
-                    <span class="material-symbols-outlined text-3xl transition-transform group-hover:scale-110">assessment</span>
-                    <span class="text-xs font-bold text-center">Absent<br>List</span>
+                <a href="{{ url_for('absent_list') }}" class="action-btn group">
+                    <span class="material-symbols-rounded">assessment</span>
+                    <span>Absent Box</span>
                 </a>
-                
-                <form method="POST" action="{{ url_for('train_model') }}" class="block aspect-square" onsubmit="return confirm('Train model now?');">
-                    <button type="submit" class="w-full h-full bg-tertiary text-white p-4 rounded-xl flex flex-col items-center justify-center gap-2 shadow-sm hover:translate-y-[-2px] transition-all group">
-                        <span class="material-symbols-outlined text-3xl transition-transform group-hover:scale-110" style="font-variation-settings: 'FILL' 1;">model_training</span>
-                        <span class="text-xs font-bold text-center">Train<br>Model</span>
-                    </button>
-                </form>
+                <a href="{{ url_for('absent_list') }}" class="action-btn group">
+                    <span class="material-symbols-rounded">bar_chart</span>
+                    <span>Reports</span>
+                </a>
             </div>
         </div>
 
-        <!-- Attendance Overview Chart -->
-        <div class="bg-surface-container-lowest p-8 rounded-xl shadow-sm border border-outline-variant/10 flex flex-col items-center">
-            <h4 class="text-lg font-bold text-blue-900 w-full mb-8">System Summary</h4>
+        <!-- System Visualization -->
+        <div class="card p-8 bg-slate-900 text-white border-none shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 -mr-16 -mt-16 rounded-full"></div>
+            
+            <h3 class="text-lg font-800 mb-8 relative z-10">Daily Breakdown</h3>
             
             {% set total = summary.total if summary.total > 0 else 1 %}
-
-            <div class="relative w-40 h-40 mb-10">
-                <svg class="w-full h-full transform -rotate-90">
-                    <circle class="text-slate-100" cx="80" cy="80" fill="transparent" r="70" stroke="currentColor" stroke-width="12"></circle>
-                    <!-- Dasharray formula: percentage / 100 * (2 * pi * radius) where radius=70, circumference ~= 440 -->
-                    {% set dash_length = (summary.percentage / 100 * 440)|round(0) %}
-                    <circle class="text-primary" cx="80" cy="80" fill="transparent" r="70" stroke="currentColor" stroke-dasharray="{{ dash_length }} 440" stroke-linecap="round" stroke-width="12"></circle>
-                </svg>
-                <div class="absolute inset-0 flex flex-col items-center justify-center">
-                    <span class="text-3xl font-black text-blue-900">{{ summary.percentage }}%</span>
-                    <span class="text-[10px] text-slate-400 font-bold uppercase">Overall</span>
+            
+            <div class="flex justify-center mb-10 relative z-10">
+                <div class="relative w-44 h-44">
+                    <svg class="w-full h-full transform -rotate-90">
+                        <circle class="text-slate-800" cx="88" cy="88" fill="transparent" r="80" stroke="currentColor" stroke-width="14"></circle>
+                        {% set dash_length = (summary.percentage / 100 * 502)|round(0) %}
+                        <circle class="text-indigo-500" cx="88" cy="88" fill="transparent" r="80" stroke="currentColor" stroke-dasharray="{{ dash_length }} 502" stroke-linecap="round" stroke-width="14" style="transition: stroke-dasharray 1s ease-out;"></circle>
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span class="text-4xl font-black">{{ summary.percentage }}%</span>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Overall</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="w-full space-y-4">
-                <div class="space-y-1.5">
-                    <div class="flex justify-between text-[11px] font-bold text-slate-600">
-                        <span>PRESENT</span>
-                        <span>{{ (summary.present / total * 100)|round(1) }}% ({{ summary.present }})</span>
+            <div class="space-y-5 relative z-10">
+                <div class="space-y-2">
+                    <div class="flex justify-between text-[11px] font-bold">
+                        <span class="text-emerald-400 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            PRESENT
+                        </span>
+                        <span>{{ summary.present }}</span>
                     </div>
-                    <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                        <div class="bg-green-500 h-full rounded-full" style="width: {{ (summary.present / total * 100)|round(1) }}%"></div>
-                    </div>
-                </div>
-
-                <div class="space-y-1.5">
-                    <div class="flex justify-between text-[11px] font-bold text-slate-600">
-                        <span>LATE</span>
-                        <span>{{ (summary.late / total * 100)|round(1) }}% ({{ summary.late }})</span>
-                    </div>
-                    <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                        <div class="bg-on-tertiary-container h-full rounded-full" style="width: {{ (summary.late / total * 100)|round(1) }}%"></div>
+                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div class="bg-emerald-500 h-full rounded-full" style="width: {{ (summary.present / total * 100)|round(1) }}%"></div>
                     </div>
                 </div>
 
-                <div class="space-y-1.5">
-                    <div class="flex justify-between text-[11px] font-bold text-slate-600">
-                        <span>ABSENT</span>
-                        <span>{{ (summary.absent / total * 100)|round(1) }}% ({{ summary.absent }})</span>
+                <div class="space-y-2">
+                    <div class="flex justify-between text-[11px] font-bold">
+                        <span class="text-amber-400 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                            LATE
+                        </span>
+                        <span>{{ summary.late }}</span>
                     </div>
-                    <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                        <div class="bg-error h-full rounded-full" style="width: {{ (summary.absent / total * 100)|round(1) }}%"></div>
+                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div class="bg-amber-500 h-full rounded-full" style="width: {{ (summary.late / total * 100)|round(1) }}%"></div>
                     </div>
                 </div>
 
-                <div class="space-y-1.5">
-                    <div class="flex justify-between text-[11px] font-bold text-slate-600">
-                        <span>LEAVE / UNMARKED</span>
-                        <span>{{ ((summary.leave + summary.unmarked) / total * 100)|round(1) }}% ({{ summary.leave + summary.unmarked }})</span>
+                <div class="space-y-2">
+                    <div class="flex justify-between text-[11px] font-bold">
+                        <span class="text-rose-400 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                            ABSENT
+                        </span>
+                        <span>{{ summary.absent }}</span>
                     </div>
-                    <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                        <div class="bg-primary h-full rounded-full" style="width: {{ ((summary.leave + summary.unmarked) / total * 100)|round(1) }}%"></div>
+                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div class="bg-rose-500 h-full rounded-full" style="width: {{ (summary.absent / total * 100)|round(1) }}%"></div>
                     </div>
                 </div>
             </div>
         </div>
-        
     </div>
 </div>
 {% endblock %}
@@ -231,47 +231,47 @@
         
         if (labels.length === 0) return;
 
-        // Custom linear gradient for the chart line fill
         let gradient = ctx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, 'rgba(0, 35, 111, 0.2)');   // primary color with opacity
-        gradient.addColorStop(1, 'rgba(0, 35, 111, 0)');
+        gradient.addColorStop(0, 'rgba(79, 70, 229, 0.2)');
+        gradient.addColorStop(1, 'rgba(79, 70, 229, 0)');
 
         new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Attendance %',
+                    label: 'Daily Attendance',
                     data: data,
-                    borderColor: '#00236f', // primary
+                    borderColor: '#4f46e5',
                     backgroundColor: gradient,
-                    borderWidth: 3,
+                    borderWidth: 4,
                     fill: true,
-                    tension: 0.4,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    pointBackgroundColor: '#ffffff',
-                    pointBorderColor: '#00236f',
-                    pointBorderWidth: 2
+                    tension: 0.45,
+                    pointRadius: 0,
+                    pointHoverRadius: 8,
+                    pointHoverBackgroundColor: '#ffffff',
+                    pointHoverBorderColor: '#4f46e5',
+                    pointHoverBorderWidth: 4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        backgroundColor: '#191c1d',
-                        titleColor: '#ffffff',
-                        bodyColor: '#e1e3e4',
-                        padding: 12,
-                        cornerRadius: 8,
+                        backgroundColor: '#0f172a',
+                        titleFont: { size: 12, weight: 'bold' },
+                        bodyFont: { size: 14, weight: 'black' },
+                        padding: 16,
+                        cornerRadius: 12,
+                        displayColors: false,
                         callbacks: {
-                            label: function(context) {
-                                return `Attendance: ${context.parsed.y}%`;
-                            }
+                            label: (ctx) => `Rate: ${ctx.parsed.y}%`
                         }
                     }
                 },
@@ -280,22 +280,24 @@
                         beginAtZero: true,
                         max: 100,
                         grid: { 
-                            color: 'rgba(25, 28, 29, 0.05)',
+                            color: 'rgba(226, 232, 240, 0.5)',
                             drawBorder: false
                         },
                         ticks: {
-                            font: { family: 'Inter', size: 10, weight: 'bold' },
-                            color: '#757682',
-                            callback: value => value + '%',
-                            stepSize: 25
+                            font: { family: 'Inter', size: 11, weight: 'bold' },
+                            color: '#94a3b8',
+                            callback: v => v + '%',
+                            stepSize: 25,
+                            padding: 10
                         }
                     },
                     x: {
-                        grid: { display: false, drawBorder: false },
+                        grid: { display: false },
                         ticks: {
-                            font: { family: 'Inter', size: 10, weight: 'bold' },
-                            color: '#757682',
-                            maxTicksLimit: 7
+                            font: { family: 'Inter', size: 11, weight: 'bold' },
+                            color: '#94a3b8',
+                            maxTicksLimit: 7,
+                            padding: 10
                         }
                     }
                 }

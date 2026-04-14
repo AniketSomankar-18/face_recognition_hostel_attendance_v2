@@ -5,341 +5,255 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>{% block title %}Hostel Excellence{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            "colors": {
-              "tertiary-container": "#5c3800",
-              "surface": "#f8f9fa",
-              "on-primary": "#ffffff",
-              "secondary-fixed-dim": "#bdc5eb",
-              "secondary-fixed": "#dce1ff",
-              "surface-container": "#edeeef",
-              "surface-container-highest": "#e1e3e4",
-              "surface-tint": "#4059aa",
-              "on-secondary-fixed-variant": "#3d4565",
-              "on-tertiary-fixed": "#2a1700",
-              "surface-container-high": "#e7e8e9",
-              "surface-variant": "#e1e3e4",
-              "on-tertiary-container": "#ef9900",
-              "inverse-surface": "#2e3132",
-              "inverse-primary": "#b6c4ff",
-              "on-tertiary-fixed-variant": "#653e00",
-              "surface-container-low": "#f3f4f5",
-              "surface-container-lowest": "#ffffff",
-              "outline": "#757682",
-              "outline-variant": "#c5c5d3",
-              "on-primary-fixed": "#00164e",
-              "secondary": "#555d7e",
-              "on-secondary-container": "#555e7f",
-              "surface-dim": "#d9dadb",
-              "error": "#ba1a1a",
-              "on-surface-variant": "#444651",
-              "tertiary-fixed": "#ffddb8",
-              "primary-fixed": "#dce1ff",
-              "tertiary": "#3e2400",
-              "on-secondary-fixed": "#111a37",
-              "on-primary-container": "#90a8ff",
-              "background": "#f8f9fa",
-              "primary": "#00236f",
-              "inverse-on-surface": "#f0f1f2",
-              "secondary-container": "#d0d8ff",
-              "on-background": "#191c1d",
-              "on-surface": "#191c1d",
-              "on-primary-fixed-variant": "#264191",
-              "error-container": "#ffdad6",
-              "on-secondary": "#ffffff",
-              "on-tertiary": "#ffffff",
-              "tertiary-fixed-dim": "#ffb95f",
-              "on-error": "#ffffff",
-              "on-error-container": "#93000a",
-              "primary-container": "#1e3a8a",
-              "surface-bright": "#f8f9fa",
-              "primary-fixed-dim": "#b6c4ff"
-            },
-            "borderRadius": {
-              "DEFAULT": "0.25rem",
-              "lg": "0.5rem",
-              "xl": "0.75rem",
-              "full": "9999px"
-            },
-            "fontFamily": {
-              "headline": ["Inter"],
-              "body": ["Inter"],
-              "label": ["Inter"]
-            }
-          },
-        }
-      }
-    </script>
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
-        /* Custom scrollbar for clean UI */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #c5c5d3; border-radius: 10px; }
-        .flash-animation { animation: slideIn 0.3s ease-out forwards; }
-        @keyframes slideIn {
-            from { transform: translateY(-10px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-    </style>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    {% block head %}{% endblock %}
-</head>
-
-<body class="bg-surface text-on-surface antialiased overflow-x-hidden min-h-screen relative">
-    {% if current_user.is_authenticated %}
-    <!-- Sidebar Navigation -->
-    <aside id="sidebar" class="h-screen w-64 fixed left-0 top-0 border-r border-slate-200 bg-slate-50 flex flex-col py-6 z-40 transition-transform transform -translate-x-full md:translate-x-0">
-        <div class="px-6 mb-10 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center">
-                    <span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">school</span>
-                </div>
-                <div>
-                    <h1 class="text-lg font-black tracking-tighter text-blue-900 leading-tight">SGGS Hostel</h1>
-                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Attendance System</p>
-                </div>
-            </div>
-            <button class="md:hidden text-slate-500 hover:text-blue-900 focus:outline-none" onclick="toggleSidebar()">
-                <span class="material-symbols-outlined">close</span>
-            </button>
-        </div>
-
-        <nav class="flex-1 px-4 space-y-1 overflow-y-auto">
-            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2 mt-4">Main</div>
-            
-            <a href="{{ url_for('dashboard') }}" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all {% if request.endpoint == 'dashboard' or request.endpoint == 'building_view' or request.endpoint == 'block_view' %}text-blue-800 border-r-4 border-blue-800 bg-white shadow-sm{% else %}text-slate-600 hover:bg-blue-50 hover:text-blue-900 group{% endif %}">
-                <span class="material-symbols-outlined text-xl {% if request.endpoint != 'dashboard' %}group-hover:text-blue-800{% endif %}" {% if request.endpoint == 'dashboard' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>dashboard</span>
-                Dashboard
-            </a>
-
-            <a href="{{ url_for('attendance') }}" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all {% if request.endpoint == 'attendance' %}text-blue-800 border-r-4 border-blue-800 bg-white shadow-sm{% else %}text-slate-600 hover:bg-blue-50 hover:text-blue-900 group{% endif %}">
-                <span class="material-symbols-outlined text-xl {% if request.endpoint != 'attendance' %}group-hover:text-blue-800{% endif %}" {% if request.endpoint == 'attendance' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>how_to_reg</span>
-                Mark Attendance
-            </a>
-
-            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2 mt-6">Students</div>
-            
-            <a href="{{ url_for('students') }}" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all {% if request.endpoint == 'students' or request.endpoint == 'view_student' %}text-blue-800 border-r-4 border-blue-800 bg-white shadow-sm{% else %}text-slate-600 hover:bg-blue-50 hover:text-blue-900 group{% endif %}">
-                <span class="material-symbols-outlined text-xl text-slate-500 {% if request.endpoint != 'students' %}group-hover:text-blue-800{% endif %}" {% if request.endpoint == 'students' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>group</span>
-                All Students
-            </a>
-
-            <a href="{{ url_for('register_student') }}" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all {% if request.endpoint == 'register_student' or request.endpoint == 'capture_face' or request.endpoint == 'edit_student' %}text-blue-800 border-r-4 border-blue-800 bg-white shadow-sm{% else %}text-slate-600 hover:bg-blue-50 hover:text-blue-900 group{% endif %}">
-                <span class="material-symbols-outlined text-xl text-slate-500 {% if request.endpoint != 'register_student' %}group-hover:text-blue-800{% endif %}" {% if request.endpoint == 'register_student' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>person_add</span>
-                Register Student
-            </a>
-
-            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2 mt-6">Reports</div>
-
-            <a href="{{ url_for('absent_list') }}" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all {% if request.endpoint == 'absent_list' %}text-blue-800 border-r-4 border-blue-800 bg-white shadow-sm{% else %}text-slate-600 hover:bg-blue-50 hover:text-blue-900 group{% endif %}">
-                <span class="material-symbols-outlined text-xl text-slate-500 {% if request.endpoint != 'absent_list' %}group-hover:text-blue-800{% endif %}" {% if request.endpoint == 'absent_list' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>person_off</span>
-                Absent List
-            </a>
-
-            <a href="{{ url_for('leave_management') }}" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all {% if request.endpoint == 'leave_management' %}text-blue-800 border-r-4 border-blue-800 bg-white shadow-sm{% else %}text-slate-600 hover:bg-blue-50 hover:text-blue-900 group{% endif %}">
-                <span class="material-symbols-outlined text-xl text-slate-500 {% if request.endpoint != 'leave_management' %}group-hover:text-blue-800{% endif %}" {% if request.endpoint == 'leave_management' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>event_note</span>
-                Leave Management
-            </a>
-
-            <a href="{{ url_for('penalties_view') }}" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all {% if request.endpoint == 'penalties_view' %}text-blue-800 border-r-4 border-blue-800 bg-white shadow-sm{% else %}text-slate-600 hover:bg-blue-50 hover:text-blue-900 group{% endif %}">
-                <span class="material-symbols-outlined text-xl text-error {% if request.endpoint != 'penalties_view' %}group-hover:text-error{% endif %}" {% if request.endpoint == 'penalties_view' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>gavel</span>
-                Penalties
-            </a>
-        </nav>
-
-        <div class="px-4 border-t border-slate-200 pt-6 space-y-1">
-            <form method="POST" action="{{ url_for('train_model') }}" class="w-full block">
-                <button type="submit" onclick="return confirm('Train face recognition model? This might take a few moments.');" class="w-full flex items-center gap-3 px-4 py-3 text-white bg-primary hover:bg-primary-container transition-all rounded-xl text-sm font-bold shadow-md">
-                    <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">model_training</span>
-                    Train AI Model
-                </button>
-            </form>
-
-            <a href="{{ url_for('logout') }}" class="w-full flex items-center gap-3 px-4 py-3 mt-2 text-error hover:bg-error-container/20 transition-all rounded-xl text-sm font-medium group">
-                <span class="material-symbols-outlined text-xl group-hover:text-error">logout</span>
-                Logout
-            </a>
-        </div>
-    </aside>
-
-    <!-- Top Nav Bar -->
-    <header class="fixed top-0 right-0 left-0 md:left-64 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 flex justify-between items-center px-4 md:px-6 py-3">
-        <div class="flex items-center gap-4">
-            <button class="md:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-lg flex items-center justify-center transition-colors focus:outline-none" onclick="toggleSidebar()">
-                <span class="material-symbols-outlined">menu</span>
-            </button>
-            <h2 class="text-xl font-bold text-blue-900 hidden sm:block">Hostel Excellence</h2>
-
-            <div class="hidden lg:flex items-center bg-surface-container-low rounded-full px-4 py-1.5 gap-2 border border-outline-variant/10 ml-4 group focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                <span class="material-symbols-outlined text-slate-400 text-sm">search</span>
-                <form action="{{ url_for('search_students_global') }}" method="POST" class="m-0 p-0 flex">
-                    <input name="query" class="bg-transparent border-none focus:ring-0 text-sm w-48 placeholder:text-slate-400 p-0" placeholder="Search student or room..." type="text" autocomplete="off" required/>
-                </form>
-            </div>
-        </div>
-
-        <div class="flex items-center gap-2 md:gap-4">
-            <div class="bg-surface-container-low px-3 py-1.5 rounded-lg border border-outline-variant/20 hidden sm:flex flex-col items-end">
-                <span id="currentDateTop" class="text-[10px] font-bold text-slate-500 uppercase tracking-wider"></span>
-                <span id="currentTimeTop" class="text-sm font-black text-primary"></span>
-            </div>
-
-            <div class="h-8 w-px bg-slate-200 mx-1 hidden sm:block"></div>
-
-            <a href="{{ url_for('download_excel') }}" title="Export Excel" class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-green-50 text-slate-500 hover:text-green-600 transition-colors">
-                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">table</span>
-            </a>
-            <a href="{{ url_for('download_pdf') }}" title="Export PDF" class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-red-50 text-slate-500 hover:text-error transition-colors">
-                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">picture_as_pdf</span>
-            </a>
-            
-            <div class="h-8 w-px bg-slate-200 mx-1"></div>
-
-            <div class="flex items-center gap-3">
-                <div class="text-right hidden md:block">
-                    <p class="text-xs font-bold text-blue-900">{{ current_user.username | capitalize }}</p>
-                    <p class="text-[10px] text-slate-500 uppercase tracking-wider">{{ current_user.role | capitalize }}</p>
-                </div>
-                <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center border-2 border-primary/20 text-primary font-bold">
-                    {{ current_user.username[0]|upper }}
-                </div>
-            </div>
-        </div>
-    </header>
-
-    {% endif %}
-
-    <!-- Main Content Area -->
-    <main class="{% if current_user.is_authenticated %}md:ml-64 pt-20 pb-20 md:pb-12{% endif %} min-h-screen">
-        
-        <!-- Flash Messages Overlay -->
-        <div class="fixed top-24 right-4 md:right-8 z-50 flex flex-col gap-3 w-80 max-w-[calc(100vw-2rem)] pointer-events-none" id="flash-container">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <!-- category can be success, danger, warning, info -->
-                        {% set bg_color = 'bg-surface-container-lowest' %}
-                        {% set border_color = 'border-l-primary' %}
-                        {% set text_color = 'text-primary' %}
-                        {% set icon = 'info' %}
-                        
-                        {% if category == 'success' %}
-                            {% set border_color = 'border-l-green-500' %}
-                            {% set text_color = 'text-green-700' %}
-                            {% set icon = 'check_circle' %}
-                        {% elif category == 'danger' or category == 'error' %}
-                            {% set border_color = 'border-l-error' %}
-                            {% set text_color = 'text-error' %}
-                            {% set icon = 'error' %}
-                        {% elif category == 'warning' %}
-                            {% set border_color = 'border-l-on-tertiary-container' %}
-                            {% set text_color = 'text-on-tertiary-container' %}
-                            {% set icon = 'warning' %}
-                        {% endif %}
-
-                        <div class="flash-animation pointer-events-auto flex items-start gap-3 p-4 {{ bg_color }} rounded-xl shadow-lg border-l-4 {{ border_color }} border-t border-r border-b border-outline-variant/10 relative">
-                            <span class="material-symbols-outlined {{ text_color }}" style="font-variation-settings: 'FILL' 1;">{{ icon }}</span>
-                            <div class="flex-1 pr-4 text-sm font-medium text-on-surface-variant">{{ message }}</div>
-                            <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-400 hover:text-slate-600 focus:outline-none">
-                                <span class="material-symbols-outlined text-sm">close</span>
-                            </button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-        </div>
-
-        <div class="px-4 md:px-6 lg:px-10 max-w-7xl mx-auto h-full">
-            {% block content %}{% endblock %}
-        </div>
-    </main>
-
-    {% if current_user.is_authenticated %}
-    <!-- Mobile Bottom Navigation (Hidden on MD and up) -->
-    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-slate-100 flex justify-around items-center py-2 px-2 z-50">
-        <a href="{{ url_for('dashboard') }}" class="flex flex-col items-center gap-1 min-w-[64px] {% if request.endpoint == 'dashboard' %}text-primary{% else %}text-slate-400 transition-colors hover:text-primary{% endif %}">
-            <span class="material-symbols-outlined text-[20px]" {% if request.endpoint == 'dashboard' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>dashboard</span>
-            <span class="text-[10px] font-bold">Dash</span>
-        </a>
-        
-        <a href="{{ url_for('attendance') }}" class="flex flex-col items-center gap-1 min-w-[64px] {% if request.endpoint == 'attendance' %}text-primary{% else %}text-slate-400 transition-colors hover:text-primary{% endif %}">
-            <span class="material-symbols-outlined text-[20px]" {% if request.endpoint == 'attendance' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>how_to_reg</span>
-            <span class="text-[10px] font-bold">Attend</span>
-        </a>
-
-        <!-- FAB style elevated center button for fast registration bridging -->
-        <div class="relative -top-6">
-            <a href="{{ url_for('register_student') }}" class="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center border-4 border-surface shadow-lg hover:scale-105 transition-transform">
-                <span class="material-symbols-outlined">person_add</span>
-            </a>
-        </div>
-
-        <a href="{{ url_for('students') }}" class="flex flex-col items-center gap-1 min-w-[64px] {% if request.endpoint == 'students' %}text-primary{% else %}text-slate-400 transition-colors hover:text-primary{% endif %}">
-            <span class="material-symbols-outlined text-[20px]" {% if request.endpoint == 'students' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>group</span>
-            <span class="text-[10px] font-bold">Students</span>
-        </a>
-
-        <a href="{{ url_for('absent_list') }}" class="flex flex-col items-center gap-1 min-w-[64px] {% if request.endpoint in ['absent_list', 'leave_management', 'penalties_view'] %}text-primary{% else %}text-slate-400 transition-colors hover:text-primary{% endif %}">
-            <span class="material-symbols-outlined text-[20px]" {% if request.endpoint in ['absent_list', 'leave_management', 'penalties_view'] %}style="font-variation-settings: 'FILL' 1;"{% endif %}>assessment</span>
-            <span class="text-[10px] font-bold">Reports</span>
-        </a>
-    </nav>
-    {% endif %}
-
-    <script>
-        // Set up the clock
-        function updateClockTop() {
-            const elDate = document.getElementById('currentDateTop');
-            const elTime = document.getElementById('currentTimeTop');
-            if (!elDate || !elTime) return;
-
-            const now = new Date();
-            const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-            
-            elDate.textContent = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
-            
-            let h = now.getHours(), m = String(now.getMinutes()).padStart(2,'0'), s = String(now.getSeconds()).padStart(2,'0');
-            const ampm = h >= 12 ? 'PM' : 'AM';
-            h = h % 12 || 12;
-            let hStr = String(h).padStart(2, '0');
-            
-            elTime.textContent = `${hStr}:${m}:${s} ${ampm}`;
-        }
-        setInterval(updateClockTop, 1000); 
-        updateClockTop();
-
-        // Flash message auto cleanup
-        setTimeout(() => {
-            document.querySelectorAll('.flash-animation').forEach(el => {
-                el.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
-                el.style.opacity = '0';
-                el.style.transform = 'translateY(-10px)';
-                setTimeout(() => el.remove(), 500);
-            });
-        }, 5000);
-
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            if(sidebar) {
-                if (sidebar.classList.contains('-translate-x-full')) {
-                    sidebar.classList.remove('-translate-x-full');
-                } else {
-                    sidebar.classList.add('-translate-x-full');
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#00236f',
+                        'primary-container': '#4f72c3',
+                        'on-primary': '#ffffff',
+                        'on-primary-container': '#001344',
+                        secondary: '#425e91',
+                        surface: '#f9fafb',
+                        'surface-container-lowest': '#ffffff',
+                        'surface-container-low': '#f3f4f6',
+                        'surface-container': '#e5e7eb',
+                        'surface-container-high': '#d1d5db',
+                        'on-surface': '#111827',
+                        'on-surface-variant': '#4b5563',
+                        'outline-variant': '#cbd5e1',
+                        error: '#dc2626',
+                        'error-container': '#fef2f2',
+                        'on-error-container': '#991b1b',
+                        'tertiary-fixed-dim': '#6b7280',
+                        'on-tertiary-container': '#475569'
+                    }
                 }
             }
         }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+    <style>
+        .material-symbols-rounded {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .nav-item.active .material-symbols-rounded {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 flex min-h-screen font-sans antialiased text-slate-900">
+    {% if current_user.is_authenticated %}
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar no-print transition-transform transform -translate-x-full md:translate-x-0 fixed md:static inset-y-0 left-0 bg-white z-50">
+        <div class="sidebar-brand">
+            <div class="brand-icon">
+                <span class="material-symbols-rounded">domain</span>
+            </div>
+            <div>
+                <div class="brand-name">Hostel Excellence</div>
+                <div class="brand-sub">Management Portal</div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <span class="nav-label">Core Modules</span>
+            <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.endpoint == 'dashboard' or request.endpoint == 'building_view' or request.endpoint == 'block_view' %}active{% endif %}">
+                <span class="material-symbols-rounded">dashboard</span>
+                <span>Dashboard</span>
+            </a>
+            
+            <a href="{{ url_for('attendance') }}" class="nav-item {% if request.endpoint == 'attendance' %}active{% endif %}">
+                <span class="material-symbols-rounded">fact_check</span>
+                <span>Attendance</span>
+            </a>
+
+            <a href="{{ url_for('students') }}" class="nav-item {% if request.endpoint == 'students' or request.endpoint == 'view_student' %}active{% endif %}">
+                <span class="material-symbols-rounded">group</span>
+                <span>Students</span>
+            </a>
+
+            <span class="nav-label">Admin & Reports</span>
+            <a href="{{ url_for('absent_list') }}" class="nav-item {% if request.endpoint == 'absent_list' %}active{% endif %}">
+                <span class="material-symbols-rounded">person_off</span>
+                <span>Absent List</span>
+            </a>
+
+            <a href="{{ url_for('leave_management') }}" class="nav-item {% if request.endpoint == 'leave_management' %}active{% endif %}">
+                <span class="material-symbols-rounded">event_note</span>
+                <span>Leave Mgt</span>
+            </a>
+
+            {% if current_user.role == 'rector' %}
+            {# Wardens management route not yet implemented #}
+            {% endif %}
+
+            <a href="{{ url_for('penalties_view') }}" class="nav-item {% if request.endpoint == 'penalties_view' %}active{% endif %}">
+                <span class="material-symbols-rounded">gavel</span>
+                <span>Penalties</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl mb-4 border border-slate-200/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs">
+                        {{ current_user.username[0]|upper }}
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-xs font-bold text-slate-900">{{ current_user.username }}</span>
+                        <span class="text-[10px] font-medium text-slate-500 uppercase tracking-wider">{{ current_user.role|capitalize }}</span>
+                    </div>
+                </div>
+                <a href="{{ url_for('logout') }}" class="w-8 h-8 flex items-center justify-center text-red-500 hover:bg-red-100/50 rounded-lg transition-colors" title="Logout">
+                    <span class="material-symbols-rounded text-lg">logout</span>
+                </a>
+            </div>
+            
+            <form method="POST" action="{{ url_for('train_model') }}">
+                <button type="submit" class="w-full btn btn-primary btn-sm justify-center gap-3 py-2.5">
+                    <span class="material-symbols-rounded text-sm">model_training</span>
+                    <span class="font-bold">Train AI Model</span>
+                </button>
+            </form>
+        </div>
+    </aside>
+    {% endif %}
+
+    <!-- Main View -->
+    <main class="main-content flex-1 flex flex-col relative">
+        {% if current_user.is_authenticated %}
+        <!-- Topbar -->
+        <header class="topbar no-print">
+            <div class="flex items-center gap-4 flex-1">
+                <button class="md:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-lg" onclick="toggleSidebar()">
+                    <span class="material-symbols-rounded">menu</span>
+                </button>
+
+                <form action="{{ url_for('search_students_global') }}" method="POST" class="global-search-form hidden sm:flex">
+                    <span class="material-symbols-rounded text-slate-400">search</span>
+                    <input type="text" name="query" placeholder="Search student or room..." autocomplete="off">
+                </form>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div class="hidden sm:flex flex-col items-end mr-2">
+                    <span id="currentDateTop" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"></span>
+                    <span id="currentTimeTop" class="text-sm font-black text-indigo-600 tracking-tight"></span>
+                </div>
+                
+                <div class="h-8 w-[1px] bg-slate-200"></div>
+
+                <div class="flex items-center gap-1">
+                    <a href="{{ url_for('download_excel') }}" title="Export Excel" class="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-green-50 text-slate-400 hover:text-green-600 transition-colors">
+                        <span class="material-symbols-rounded">table_chart</span>
+                    </a>
+                    <a href="{{ url_for('download_pdf') }}" title="Export PDF" class="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors">
+                        <span class="material-symbols-rounded">picture_as_pdf</span>
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Mobile Search (only on small screens) -->
+        <div class="sm:hidden px-4 py-3 bg-white border-b border-slate-100 no-print">
+            <form action="{{ url_for('search_students_global') }}" method="POST" class="global-search-form w-full">
+                <span class="material-symbols-rounded text-slate-400">search</span>
+                <input type="text" name="query" placeholder="Search student..." class="w-full">
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- Page Content Container -->
+        <div class="page-content animate-in">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="fixed top-24 right-4 z-[100] flex flex-col gap-3 w-80 max-w-[calc(100vw-2rem)] no-print">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category if category != 'message' else 'info' }} glass shadow-xl animate-bounce-in">
+                                <span class="material-symbols-rounded">{{ 'check_circle' if category == 'success' else 'info' }}</span>
+                                <span class="flex-1">{{ message }}</span>
+                                <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-600">
+                                    <span class="material-symbols-rounded text-sm">close</span>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+
+        {% if current_user.is_authenticated %}
+        <!-- Mobile Bottom Navigation -->
+        <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-slate-100 flex justify-around items-center py-2 px-2 z-50 no-print">
+            <a href="{{ url_for('dashboard') }}" class="flex flex-col items-center gap-1 min-w-[64px] {% if request.endpoint == 'dashboard' %}text-indigo-600{% else %}text-slate-400{% endif %}">
+                <span class="material-symbols-rounded">dashboard</span>
+                <span class="text-[10px] font-bold">Dash</span>
+            </a>
+            
+            <a href="{{ url_for('attendance') }}" class="flex flex-col items-center gap-1 min-w-[64px] {% if request.endpoint == 'attendance' %}text-indigo-600{% else %}text-slate-400{% endif %}">
+                <span class="material-symbols-rounded">fact_check</span>
+                <span class="text-[10px] font-bold">Attend</span>
+            </a>
+
+            <div class="relative -top-6">
+                <a href="{{ url_for('register_student') }}" class="w-12 h-12 bg-indigo-600 text-white rounded-full flex items-center justify-center border-4 border-white shadow-lg">
+                    <span class="material-symbols-rounded">person_add</span>
+                </a>
+            </div>
+
+            <a href="{{ url_for('students') }}" class="flex flex-col items-center gap-1 min-w-[64px] {% if request.endpoint == 'students' %}text-indigo-600{% else %}text-slate-400{% endif %}">
+                <span class="material-symbols-rounded">group</span>
+                <span class="text-[10px] font-bold">Students</span>
+            </a>
+
+            <a href="{{ url_for('absent_list') }}" class="flex flex-col items-center gap-1 min-w-[64px] {% if request.endpoint == 'absent_list' %}text-indigo-600{% else %}text-slate-400{% endif %}">
+                <span class="material-symbols-rounded">assessment</span>
+                <span class="text-[10px] font-bold">Reports</span>
+            </a>
+        </nav>
+        {% endif %}
+    </main>
+
+    <script>
+        function updateLiveTime() {
+            const dateEl = document.getElementById('currentDateTop');
+            const timeEl = document.getElementById('currentTimeTop');
+            if (!dateEl || !timeEl) return;
+
+            const now = new Date();
+            dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+            timeEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+        setInterval(updateLiveTime, 1000);
+        updateLiveTime();
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                sidebar.classList.toggle('-translate-x-full');
+            }
+        }
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('[onclick="toggleSidebar()"]');
+            if (window.innerWidth < 768 && sidebar && !sidebar.contains(e.target) && !toggle.contains(e.target)) {
+                sidebar.classList.add('-translate-x-full');
+            }
+        });
     </script>
     {% block scripts %}{% endblock %}
 </body>

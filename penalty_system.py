@@ -37,46 +37,41 @@ def finalize_attendance(app):
         }
 
         active_students = Student.query.filter_by(is_active=True).all()
+        
+        # Batch lookup today's attendance
+        attendance_records = {a.registration_number for a in Attendance.query.filter_by(date=today).all()}
+        
+        # Batch lookup active leaves
+        leaves = {l.registration_number for l in Leave.query.filter(
+            Leave.approved == True,
+            Leave.from_date <= today,
+            Leave.to_date >= today
+        ).all()}
 
         for student in active_students:
-            # Already has an attendance record today?
-            existing = Attendance.query.filter_by(
-                registration_number=student.registration_number,
-                date=today
-            ).first()
-            if existing:
-                continue   # already marked (Present / Late / Leave / Absent)
+            reg = student.registration_number
+            if reg in attendance_records:
+                continue
 
-            # On approved leave?
-            on_leave = Leave.query.filter_by(
-                registration_number=student.registration_number,
-                approved=True
-            ).filter(
-                Leave.from_date <= today,
-                Leave.to_date >= today
-            ).first()
-
-            if on_leave:
+            if reg in leaves:
                 # Mark Leave – no penalty
-                record = Attendance(
-                    registration_number=student.registration_number,
+                db.session.add(Attendance(
+                    registration_number=reg,
                     date=today,
                     status='Leave',
                     marked_at=datetime.now(),
                     marked_by='auto_system'
-                )
-                db.session.add(record)
+                ))
                 continue
 
             # ── Mark Absent ──────────────────────────────────────────
-            record = Attendance(
-                registration_number=student.registration_number,
+            db.session.add(Attendance(
+                registration_number=reg,
                 date=today,
                 status='Absent',
                 marked_at=datetime.now(),
                 marked_by='auto_system'
-            )
-            db.session.add(record)
+            ))
             results['marked_absent'] += 1
 
             # ── Apply Penalty ────────────────────────────────────────
@@ -84,7 +79,7 @@ def finalize_attendance(app):
             amount = get_penalty_amount(student.absence_count)
 
             penalty = Penalty(
-                registration_number=student.registration_number,
+                registration_number=reg,
                 date=today,
                 penalty_amount=amount,
                 absence_count=student.absence_count,
@@ -108,7 +103,7 @@ def finalize_attendance(app):
                 else:
                     results['errors'].append(msg)
             except Exception as e:
-                results['errors'].append(f"Email error for {student.registration_number}: {e}")
+                results['errors'].append(f"Email error for {reg}: {e}")
 
         db.session.commit()
 
@@ -123,28 +118,35 @@ def finalize_attendance(app):
         return results
 
 
-def get_penalty_summary():
-    """Return aggregate penalty data for the penalties view."""
-    penalties = Penalty.query.order_by(Penalty.date.desc()).all()
-
-    result = []
-    for p in penalties:
-        student = Student.query.filter_by(
-            registration_number=p.registration_number
-        ).first()
-        result.append({
-            'id': p.id,
-            'registration_number': p.registration_number,
-            'student_name': student.name if student else 'N/A',
-            'room_number': student.room_number if student else '—',
-            'date': p.date,
-            'penalty_amount': p.penalty_amount,
-            'absence_count': p.absence_count,
-            'reason': p.reason,
-            'email_sent': p.email_sent
-        })
-
-    total = sum(p['penalty_amount'] for p in result)
-    students_penalised = len(set(p['registration_number'] for p in result))
-
-    return result, total, students_penalised
+def get_penalty_summary(hostel_code='ALL'):
+    """
+    Get a summary of total penalties for all students, optimized for performance.
+    """
+    # Use a JOIN to fetch student names alongside penalties in one query
+    query = db.session.query(
+        Penalty.registration_number,
+        Student.name,
+        Student.room_number,
+        db.func.sum(Penalty.penalty_amount).label('total_amount'),
+        db.func.count(Penalty.id).label('violation_count')
+    ).join(Student, Penalty.registration_number == Student.registration_number)
+    
+    if hostel_code != 'ALL':
+        query = query.filter(Student.room_number.like(f"{hostel_code} %"))
+        
+    penalties = query.group_by(
+        Penalty.registration_number, 
+        Student.name,
+        Student.room_number
+    ).all()
+    
+    return [
+        {
+            'reg_num': p.registration_number,
+            'name': p.name,
+            'room': p.room_number,
+            'amount': float(p.total_amount),
+            'count': int(p.violation_count)
+        }
+        for p in penalties
+    ]

@@ -10,7 +10,7 @@
     
     <div class="flex gap-3">
         <a href="{{ url_for('students') }}" class="bg-surface-container text-on-surface px-6 py-2.5 rounded-xl font-bold shadow-sm flex items-center gap-2 hover:bg-surface-dim transition-colors">
-            <span class="material-symbols-outlined text-sm">arrow_back</span> Back to Directory
+            <span class="material-symbols-rounded text-sm">arrow_back</span> Back to Directory
         </a>
     </div>
 </div>
@@ -39,7 +39,7 @@
                     <div class="flex items-center justify-between text-sm">
                         <span class="text-slate-500 font-medium">Assigned Room</span>
                         <span class="font-bold text-on-surface flex items-center gap-1">
-                            <span class="material-symbols-outlined text-[16px] text-primary">meeting_room</span> 
+                            <span class="material-symbols-rounded text-[16px] text-primary">meeting_room</span> 
                             {{ student.room_number }}
                         </span>
                     </div>
@@ -58,7 +58,7 @@
         <!-- Academic Performance / Summary -->
         <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
             <h3 class="font-bold text-blue-900 mb-6 flex items-center gap-2">
-                <span class="material-symbols-outlined text-sm">donut_large</span> Overall Metrics
+                <span class="material-symbols-rounded text-sm">donut_large</span> Overall Metrics
             </h3>
 
             <div class="flex justify-between items-end mb-4">
@@ -106,15 +106,15 @@
 
             <div class="flex justify-between items-center mb-8">
                 <h3 class="text-xl font-bold text-blue-900 flex items-center gap-2">
-                    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">calendar_month</span>
+                    <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1;">calendar_month</span>
                     {{ cal_data.month_name }} <span class="text-slate-400 font-medium">{{ year }}</span>
                 </h3>
                 <div class="flex gap-2">
                     <a href="{{ url_for('view_student', reg_num=student.registration_number, month=prev_month, year=prev_year) }}" class="w-8 h-8 rounded-full bg-surface hover:bg-slate-200 border border-outline-variant/20 flex items-center justify-center text-slate-500 transition-colors">
-                        <span class="material-symbols-outlined text-sm">chevron_left</span>
+                        <span class="material-symbols-rounded text-sm">chevron_left</span>
                     </a>
                     <a href="{{ url_for('view_student', reg_num=student.registration_number, month=next_month, year=next_year) }}" class="w-8 h-8 rounded-full bg-surface hover:bg-slate-200 border border-outline-variant/20 flex items-center justify-center text-slate-500 transition-colors">
-                        <span class="material-symbols-outlined text-sm">chevron_right</span>
+                        <span class="material-symbols-rounded text-sm">chevron_right</span>
                     </a>
                 </div>
             </div>

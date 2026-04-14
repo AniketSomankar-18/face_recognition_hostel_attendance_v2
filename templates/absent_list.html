@@ -2,113 +2,116 @@
 {% block title %}Absent List – Hostel Excellence{% endblock %}
 
 {% block content %}
-<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-    <div>
-        <h1 class="text-3xl font-extrabold text-blue-900 tracking-tight flex items-center gap-2 mb-2">
-            <span class="material-symbols-outlined text-error text-3xl" style="font-variation-settings: 'FILL' 1;">person_off</span>
-            Absent List
-        </h1>
-        <p class="text-slate-500 font-medium mt-1">{{ now.strftime('%A, %d %B %Y') }}</p>
-    </div>
-    
-    <div class="flex flex-col sm:flex-row gap-3">
-        <a href="{{ url_for('download_pdf') }}" class="bg-error-container text-on-error-container hover:bg-error/20 border border-error/20 px-6 py-2.5 rounded-xl font-bold shadow-sm flex items-center justify-center gap-2 transition-colors">
-            <span class="material-symbols-outlined text-sm">picture_as_pdf</span> Download PDF
-        </a>
-        <a href="{{ url_for('download_excel') }}" class="bg-green-100 text-green-800 hover:bg-green-200 border border-green-200 px-6 py-2.5 rounded-xl font-bold shadow-sm flex items-center justify-center gap-2 transition-colors">
-            <span class="material-symbols-outlined text-sm">table</span> Download Excel
-        </a>
+<div class="page-header">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 w-full">
+        <div>
+            <h1 class="page-title">
+                <span class="material-symbols-rounded">person_off</span>
+                Unaccounted Residents
+            </h1>
+            <p class="text-slate-500 font-medium">{{ now.strftime('%A, %d %B %Y') }}</p>
+        </div>
+        
+        <div class="flex gap-3">
+            <a href="{{ url_for('download_pdf') }}" class="btn btn-danger">
+                <span class="material-symbols-rounded">picture_as_pdf</span> PDF Report
+            </a>
+            <a href="{{ url_for('download_excel') }}" class="btn btn-outline" style="border-color: #10b981; color: #10b981; background: #f0fdf4;">
+                <span class="material-symbols-rounded">table_chart</span> Excel Data
+            </a>
+        </div>
     </div>
 </div>
 
 <!-- KPI Stats Row -->
-<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-    <div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/10 shadow-sm flex flex-col justify-between">
-        <span class="text-[10px] uppercase font-bold text-slate-400 tracking-widest mb-2">Total Students</span>
-        <span class="text-2xl font-black text-blue-900">{{ summary.total }}</span>
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon bg-slate-100 text-slate-600">
+            <span class="material-symbols-rounded">group</span>
+        </div>
+        <div class="stat-value text-slate-900">{{ summary.total }}</div>
+        <div class="stat-label">Resident Population</div>
     </div>
-    <div class="bg-green-50 p-4 rounded-xl border border-green-100 shadow-sm flex flex-col justify-between">
-        <span class="text-[10px] uppercase font-bold text-green-700 tracking-widest mb-2">Present</span>
-        <span class="text-2xl font-black text-green-700">{{ summary.present }}</span>
+    
+    <div class="stat-card stat-present">
+        <div class="stat-icon">
+            <span class="material-symbols-rounded">verified</span>
+        </div>
+        <div class="stat-value">{{ summary.present }}</div>
+        <div class="stat-label">Present</div>
     </div>
-    <div class="bg-on-tertiary-container/10 p-4 rounded-xl border border-on-tertiary-container/20 shadow-sm flex flex-col justify-between">
-        <span class="text-[10px] uppercase font-bold text-on-tertiary-container tracking-widest mb-2">Late</span>
-        <span class="text-2xl font-black text-on-tertiary-container">{{ summary.late }}</span>
+
+    <div class="stat-card stat-absent">
+        <div class="stat-icon">
+            <span class="material-symbols-rounded">person_off</span>
+        </div>
+        <div class="stat-value">{{ summary.absent }}</div>
+        <div class="stat-label">Absent</div>
     </div>
-    <div class="bg-error-container/40 p-4 rounded-xl border border-error/20 shadow-sm flex flex-col justify-between">
-        <span class="text-[10px] uppercase font-bold text-error tracking-widest mb-2">Absent</span>
-        <span class="text-2xl font-black text-error">{{ summary.absent }}</span>
-    </div>
-    <div class="bg-primary/10 p-4 rounded-xl border border-primary/20 shadow-sm flex flex-col justify-between">
-        <span class="text-[10px] uppercase font-bold text-primary tracking-widest mb-2">On Leave</span>
-        <span class="text-2xl font-black text-primary">{{ summary.leave }}</span>
-    </div>
-    <div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/20 shadow-sm flex flex-col justify-between">
-        <span class="text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-2">Attendance %</span>
-        <span class="text-2xl font-black text-slate-700">{{ summary.percentage }}%</span>
+
+    <div class="stat-card stat-percentage">
+        <div class="stat-icon">
+            <span class="material-symbols-rounded">trending_up</span>
+        </div>
+        <div class="stat-value">{{ summary.percentage }}%</div>
+        <div class="stat-label">Compliance Rate</div>
     </div>
 </div>
 
-<!-- Absent Students Table -->
-<div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/10 overflow-hidden mb-8">
-    <div class="px-6 py-4 flex justify-between items-center bg-surface border-b border-surface-container">
-        <h3 class="font-bold text-error flex items-center gap-2">
-            <span class="material-symbols-outlined text-sm">user_attributes</span> Unaccounted Residents
+<!-- Absent Students Card -->
+<div class="card p-0 overflow-hidden mb-8">
+    <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+        <h3 class="text-xs font-black text-rose-600 uppercase tracking-widest flex items-center gap-2">
+            <span class="material-symbols-rounded text-sm">emergency_home</span> Security Roster
         </h3>
-        <span class="bg-error-container text-on-error-container text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">{{ absent_students|length }} Absent</span>
+        <span class="bg-rose-600 text-white text-[10px] font-black px-3 py-1 rounded-full">{{ absent_students|length }} MISSING</span>
     </div>
 
     {% if absent_students %}
     <div class="overflow-x-auto">
         <table class="w-full text-left">
-            <thead class="bg-surface-container-low text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
-                <tr>
-                    <th class="px-6 py-3 whitespace-nowrap hidden sm:table-cell">Identity</th>
-                    <th class="px-6 py-3 whitespace-nowrap">Student Details</th>
-                    <th class="px-6 py-3 whitespace-nowrap">Location</th>
-                    <th class="px-6 py-3 whitespace-nowrap">Emergency Contact</th>
-                    <th class="px-6 py-3 whitespace-nowrap text-right">Actions</th>
+            <thead>
+                <tr class="bg-slate-50/50 text-[10px] uppercase font-black text-slate-400 tracking-widest border-b border-slate-100">
+                    <th class="px-6 py-4">Identity</th>
+                    <th class="px-6 py-4">Location</th>
+                    <th class="px-6 py-4">Security Protocol</th>
+                    <th class="px-6 py-4 text-right">Intervention</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-surface-container">
+            <tbody class="divide-y divide-slate-50">
                 {% for s in absent_students %}
-                <tr class="hover:bg-surface-container-low transition-colors group">
-                    <td class="px-6 py-4 hidden sm:table-cell">
-                        <div class="w-10 h-10 rounded-full bg-error-container text-error flex items-center justify-center font-bold shadow-inner border border-error/10">
-                            {{ s.name[0]|upper }}
+                <tr class="hover:bg-rose-50/30 transition-colors group">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-11 h-11 rounded-xl bg-rose-600 text-white flex items-center justify-center font-black text-lg shadow-lg">
+                                {{ s.name[0]|upper }}
+                            </div>
+                            <div class="min-w-0">
+                                <h4 class="text-sm font-black text-slate-900 truncate">{{ s.name }}</h4>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ s.registration_number }}</p>
+                            </div>
                         </div>
                     </td>
                     
                     <td class="px-6 py-4">
-                        <div class="font-bold text-on-surface">{{ s.name }}</div>
-                        <div class="flex items-center gap-2 mt-1">
-                            <span class="text-[10px] bg-surface-container-high px-2 py-0.5 rounded-full font-medium text-slate-500 tracking-wider">
-                                {{ s.registration_number }}
-                            </span>
-                            <span class="text-[10px] text-slate-400 font-medium">{{ s.department }}</span>
+                        <span class="badge badge-absent bg-slate-100 text-slate-600 border border-slate-200">RM {{ s.room_number }}</span>
+                    </td>
+
+                    <td class="px-6 py-4">
+                        <div class="flex flex-col gap-1">
+                            <a href="tel:{{ s.parent_phone }}" class="flex items-center gap-1.5 text-indigo-600 hover:text-indigo-800 transition-colors text-xs font-black">
+                                <span class="material-symbols-rounded text-sm">call</span> {{ s.parent_phone }}
+                            </a>
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Parent / Guardian Contact</span>
                         </div>
-                    </td>
-
-                    <td class="px-6 py-4">
-                        <span class="inline-flex items-center gap-1 bg-surface-container text-slate-600 px-2.5 py-1 rounded-lg text-xs font-bold border border-outline-variant/20">
-                            <span class="material-symbols-outlined text-[12px]">meeting_room</span>
-                            Rm {{ s.room_number }}
-                        </span>
-                    </td>
-
-                    <td class="px-6 py-4">
-                        <a href="tel:{{ s.parent_phone }}" class="flex items-center gap-2 text-primary hover:text-primary-container transition-colors text-sm font-bold">
-                            <span class="material-symbols-outlined text-sm">phone_in_talk</span> {{ s.parent_phone }}
-                        </a>
-                        <div class="text-[9px] text-slate-400 mt-1 uppercase tracking-widest">Marked: {{ s.marked_at }}</div>
                     </td>
 
                     <td class="px-6 py-4 text-right">
                         <form method="POST" action="{{ url_for('mark_manual') }}" class="inline">
                             <input type="hidden" name="reg_num" value="{{ s.registration_number }}">
                             <input type="hidden" name="status" value="Present">
-                            <button type="submit" class="bg-green-100 text-green-700 hover:bg-green-200 border border-green-200 px-3 py-1.5 rounded-lg text-[11px] font-bold shadow-sm flex items-center gap-1 transition-colors ml-auto">
-                                <span class="material-symbols-outlined text-sm">check</span> Mark Present
+                            <button type="submit" class="btn btn-outline btn-sm bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-600 hover:text-white hover:border-emerald-600">
+                                <span class="material-symbols-rounded text-sm">check</span> Mark Present
                             </button>
                         </form>
                     </td>
@@ -118,72 +121,69 @@
         </table>
     </div>
     {% else %}
-    <div class="p-12 flex flex-col items-center justify-center text-center">
-        <div class="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center text-green-500 mb-4 border border-green-100">
-            <span class="material-symbols-outlined text-4xl" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+    <div class="p-20 flex flex-col items-center justify-center text-center">
+        <div class="w-16 h-16 rounded-3xl bg-emerald-50 flex items-center justify-center text-emerald-500 mb-6 border border-emerald-100">
+            <span class="material-symbols-rounded text-3xl">verified</span>
         </div>
-        <h4 class="text-lg font-bold text-green-700 mb-1">No Absentees!</h4>
-        <p class="text-sm text-slate-500">All registered residents have successfully marked their attendance today.</p>
+        <h4 class="text-lg font-black text-slate-900 mb-1">Clear Roster</h4>
+        <p class="text-sm text-slate-500">Every resident is accounted for. Operation nominal.</p>
     </div>
     {% endif %}
 </div>
 
-<!-- Download Reports Configuration Cards -->
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    
-    <!-- Excel Download -->
-    <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10 flex flex-col">
-        <div class="flex items-center gap-4 mb-4">
-            <div class="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center flex-shrink-0 border border-green-100">
-                <span class="material-symbols-outlined text-2xl">table_chart</span>
+<!-- Report Generation Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <!-- Excel Card -->
+    <div class="card p-8 bg-white border-slate-100">
+        <div class="flex items-center gap-4 mb-8">
+            <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center shadow-inner border border-emerald-100">
+                <span class="material-symbols-rounded text-3xl">table_view</span>
             </div>
             <div>
-                <h4 class="font-bold text-blue-900">Monthly Excel Report</h4>
-                <p class="text-[11px] text-slate-500">Full 30-day attendance sheet</p>
+                <h3 class="text-lg font-black text-slate-900">Archive Export</h3>
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-widest">Monthly Ledger (Excel)</p>
             </div>
         </div>
-        <form method="GET" action="{{ url_for('download_excel') }}" class="mt-auto flex items-end gap-3">
+        <form method="GET" action="{{ url_for('download_excel') }}" class="flex items-end gap-3">
             <div class="flex-1">
-                <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1 tracking-widest">Select Month</label>
-                <select name="month" class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-green-600 border-x-0 border-t-0 pl-4 pr-8 py-2 text-sm transition-colors list-none">
-                    {% for m in range(1, 13) %}
-                    <option value="{{ m }}" {% if m == now.month %}selected{% endif %}>
-                        {{ ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1] }}
-                    </option>
-                    {% endfor %}
-                </select>
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Temporal Selection</label>
+                <div class="flex gap-2">
+                    <select name="month" class="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20">
+                        {% for m in range(1, 13) %}
+                        <option value="{{ m }}" {% if m == now.month %}selected{% endif %}>
+                            {{ ['January','February','March','April','May','June','July','August','September','October','November','December'][m-1] }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <input type="number" name="year" value="{{ now.year }}" min="2020" max="2030" class="w-32 bg-slate-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20">
+                </div>
             </div>
-            <div class="w-24">
-                <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1 tracking-widest">Year</label>
-                <input type="number" name="year" value="{{ now.year }}" min="2020" max="2030" class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-green-600 border-x-0 border-t-0 px-4 py-2 text-sm transition-colors">
-            </div>
-            <button type="submit" class="bg-green-600 text-white hover:bg-green-700 px-4 py-2 rounded-xl font-bold flex items-center gap-1 shadow transition-colors">
-                <span class="material-symbols-outlined text-sm">download</span>
+            <button type="submit" class="btn btn-primary bg-emerald-600 hover:bg-emerald-700 h-[44px] px-6">
+                <span class="material-symbols-rounded">download</span>
             </button>
         </form>
     </div>
 
-    <!-- PDF Download -->
-    <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10 flex flex-col">
-        <div class="flex items-center gap-4 mb-4">
-            <div class="w-12 h-12 bg-error-container text-error rounded-xl flex items-center justify-center flex-shrink-0 border border-error/20">
-                <span class="material-symbols-outlined text-2xl">picture_as_pdf</span>
+    <!-- PDF Card -->
+    <div class="card p-8 bg-white border-slate-100">
+        <div class="flex items-center gap-4 mb-8">
+            <div class="w-14 h-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center shadow-inner border border-rose-100">
+                <span class="material-symbols-rounded text-3xl">picture_as_pdf</span>
             </div>
             <div>
-                <h4 class="font-bold text-blue-900">Absent Report PDF</h4>
-                <p class="text-[11px] text-slate-500">Includes parent contacts</p>
+                <h3 class="text-lg font-black text-slate-900">Incident Report</h3>
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-widest">Daily Absentee Log (PDF)</p>
             </div>
         </div>
-        <form method="GET" action="{{ url_for('download_pdf') }}" class="mt-auto flex items-end gap-3">
+        <form method="GET" action="{{ url_for('download_pdf') }}" class="flex items-end gap-3">
             <div class="flex-1">
-                <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1 tracking-widest">Select Date</label>
-                <input type="date" name="date" value="{{ now.strftime('%Y-%m-%d') }}" class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-error border-x-0 border-t-0 px-4 py-2 text-sm transition-colors text-slate-700">
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Incident Date</label>
+                <input type="date" name="date" value="{{ now.strftime('%Y-%m-%d') }}" class="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-rose-500/20 text-slate-700">
             </div>
-            <button type="submit" class="bg-error text-white hover:bg-error/80 px-4 py-2 rounded-xl font-bold flex items-center gap-1 shadow transition-colors">
-                <span class="material-symbols-outlined text-sm">print</span>
+            <button type="submit" class="btn btn-danger h-[44px] px-6">
+                <span class="material-symbols-rounded">print</span>
             </button>
         </form>
     </div>
-
 </div>
 {% endblock %}

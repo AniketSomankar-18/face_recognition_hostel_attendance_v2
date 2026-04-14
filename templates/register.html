@@ -30,7 +30,7 @@
             
             <div class="border-b border-surface-container pb-4 mb-6">
                 <h3 class="text-lg font-bold text-primary flex items-center gap-2">
-                    <span class="material-symbols-outlined text-sm">badge</span> 
+                    <span class="material-symbols-rounded text-sm">badge</span> 
                     Student Identity
                 </h3>
             </div>
@@ -40,7 +40,7 @@
                 <div class="space-y-1">
                     <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Registration Number *</label>
                     <div class="relative">
-                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">pin</span>
+                        <span class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">pin</span>
                         <input type="text" name="registration_number" value="{{ student.registration_number if student else form_data.get('registration_number', '') }}" 
                             {% if edit_mode %}readonly{% endif %}
                             class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 pl-9 pr-4 py-2.5 text-sm transition-colors {% if edit_mode %}opacity-70 cursor-not-allowed{% endif %}" 
@@ -52,7 +52,7 @@
                 <div class="space-y-1">
                     <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Full Legal Name *</label>
                     <div class="relative">
-                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">person</span>
+                        <span class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">person</span>
                         <input type="text" name="name" value="{{ student.name if student else form_data.get('name', '') }}" 
                             class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 pl-9 pr-4 py-2.5 text-sm transition-colors" 
                             placeholder="First Last" required>
@@ -62,7 +62,7 @@
 
             <div class="border-b border-surface-container pb-4 mb-6 pt-4">
                 <h3 class="text-lg font-bold text-primary flex items-center gap-2">
-                    <span class="material-symbols-outlined text-sm">apartment</span> 
+                    <span class="material-symbols-rounded text-sm">apartment</span> 
                     Allocation & Academics
                 </h3>
             </div>
@@ -72,7 +72,7 @@
                 <div class="space-y-1">
                     <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Assigned Room *</label>
                     <div class="relative">
-                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">meeting_room</span>
+                        <span class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">meeting_room</span>
                         <input type="text" name="room_number" value="{{ student.room_number if student else form_data.get('room_number', '') }}" 
                             class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 pl-9 pr-4 py-2.5 text-sm transition-colors" 
                             placeholder="e.g. N-10" required>
@@ -83,7 +83,7 @@
                 <div class="space-y-1">
                     <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Department *</label>
                     <div class="relative">
-                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">business_center</span>
+                        <span class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">business_center</span>
                         <input type="text" name="department" value="{{ student.department if student else form_data.get('department', '') }}" 
                             class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 pl-9 pr-4 py-2.5 text-sm transition-colors" 
                             placeholder="e.g. CSE" required>
@@ -93,7 +93,7 @@
 
             <div class="border-b border-surface-container pb-4 mb-6 pt-4">
                 <h3 class="text-lg font-bold text-primary flex items-center gap-2">
-                    <span class="material-symbols-outlined text-sm">contact_phone</span> 
+                    <span class="material-symbols-rounded text-sm">contact_phone</span> 
                     Contact Information
                 </h3>
             </div>
@@ -103,7 +103,7 @@
                 <div class="space-y-1">
                     <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Student Phone *</label>
                     <div class="relative">
-                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">smartphone</span>
+                        <span class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">smartphone</span>
                         <input type="text" name="phone" value="{{ student.phone if student else form_data.get('phone', '') }}" 
                             class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 pl-9 pr-4 py-2.5 text-sm transition-colors" 
                             placeholder="10-digit number" required>
@@ -114,7 +114,7 @@
                 <div class="space-y-1">
                     <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Parent/Guardian Phone *</label>
                     <div class="relative">
-                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">contact_emergency</span>
+                        <span class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">contact_emergency</span>
                         <input type="text" name="parent_phone" value="{{ student.parent_phone if student else form_data.get('parent_phone', '') }}" 
                             class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 pl-9 pr-4 py-2.5 text-sm transition-colors" 
                             placeholder="10-digit emergency contact" required>
@@ -125,7 +125,7 @@
                 <div class="space-y-1 md:col-span-2">
                     <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Email Address *</label>
                     <div class="relative">
-                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">mail</span>
+                        <span class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">mail</span>
                         <input type="email" name="email" value="{{ student.email if student else form_data.get('email', '') }}" 
                             class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 pl-9 pr-4 py-2.5 text-sm transition-colors" 
                             placeholder="student@sggs.ac.in" required>
@@ -135,7 +135,7 @@
 
             <!-- Validation Info -->
             <div class="bg-surface-container px-4 py-3 rounded-xl border border-outline-variant/10 mt-8 flex items-start gap-3">
-                <span class="material-symbols-outlined text-primary text-sm mt-0.5">info</span>
+                <span class="material-symbols-rounded text-primary text-sm mt-0.5">info</span>
                 <p class="text-[11px] text-on-surface-variant leading-relaxed">
                     {{ 'Updating these details will not affect the encoded face data.' if edit_mode else 'After registration, you will be automatically redirected to the Face Enrollment module to capture 20 images for the AI model.' }}
                 </p>

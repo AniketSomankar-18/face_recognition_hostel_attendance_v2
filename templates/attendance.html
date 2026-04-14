@@ -1,14 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Live Recognition – Hostel Excellence{% endblock %}
+{% block title %}Attendance – Hostel Excellence{% endblock %}
 
-{% block content %}
+{% block head %}
 <style>
     .scanner-line {
         height: 2px;
-        background: linear-gradient(90deg, transparent, #00236f, transparent);
-        position: absolute;
-        width: 100%;
-        top: 50%;
+        background: linear-gradient(90deg, transparent, var(--indigo-500), transparent);
+        position: absolute; width: 100%; top: 50%;
         animation: scanAnim 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     }
     @keyframes scanAnim {
@@ -17,242 +15,201 @@
         90% { opacity: 1; }
         100% { top: 100%; opacity: 0; }
     }
-    .video-parent {
-        position: relative;
+    .video-viewport {
+        position: relative; aspect-ratio: 16/9; background: var(--slate-900);
+        border-radius: var(--radius-sm); overflow: hidden;
     }
     video#videoFeed, canvas#recognitionCanvas {
-        position: absolute;
-        top: 0; left: 0; width: 100%; height: 100%;
-        object-fit: cover;
-    }
-    @keyframes slideInRight {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    .animate-slide-in {
-        animation: slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;
     }
 </style>
+{% endblock %}
 
-<!-- Page Header & Stats Bar -->
-<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-    <div>
-        <h1 class="text-3xl font-extrabold text-on-surface tracking-tight mb-2">Live Recognition</h1>
-        <p class="text-on-surface-variant font-medium">Automatic scanning and manual marking interface</p>
-    </div>
-    
-    <!-- Floating Stats Bar -->
-    <div class="bg-surface-container-lowest shadow-sm border border-outline-variant/10 rounded-full px-2 py-2 flex items-center gap-2">
-        <div class="flex items-center gap-3 bg-primary-container text-white px-5 py-2.5 rounded-full">
-            <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
-            <div>
-                <span class="block text-[10px] leading-none opacity-80 font-bold uppercase tracking-wider">Present</span>
-                <span class="text-lg font-bold leading-none">{{ summary.present }}</span>
-            </div>
+{% block content %}
+<div class="page-header">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 w-full">
+        <div>
+            <h1 class="page-title">
+                <span class="material-symbols-rounded">fact_check</span>
+                Live Attendance
+            </h1>
+            <p class="text-slate-500 font-medium">Smart face recognition & manual marking system</p>
         </div>
-        <div class="flex items-center gap-3 bg-tertiary-fixed text-on-tertiary-fixed px-5 py-2.5 rounded-full hidden sm:flex">
-            <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">schedule</span>
-            <div>
-                <span class="block text-[10px] leading-none opacity-80 font-bold uppercase tracking-wider">Late</span>
-                <span class="text-lg font-bold leading-none">{{ summary.late }}</span>
+
+        <!-- Quick Stats Chips -->
+        <div class="flex flex-wrap items-center gap-2">
+            <div class="badge badge-present px-4 py-2 rounded-xl text-xs">
+                <span class="font-black mr-2">{{ summary.present }}</span> PRESENT
             </div>
-        </div>
-        <div class="flex items-center gap-3 bg-surface-container-high text-on-surface-variant px-5 py-2.5 rounded-full hidden md:flex">
-            <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">group_off</span>
-            <div>
-                <span class="block text-[10px] leading-none opacity-80 font-bold uppercase tracking-wider">Absent</span>
-                <span class="text-lg font-bold leading-none">{{ summary.absent }}</span>
+            <div class="badge badge-late px-4 py-2 rounded-xl text-xs">
+                <span class="font-black mr-2">{{ summary.late }}</span> LATE
+            </div>
+            <div class="badge badge-absent px-4 py-2 rounded-xl text-xs">
+                <span class="font-black mr-2">{{ summary.absent }}</span> ABSENT
             </div>
         </div>
     </div>
 </div>
 
-<!-- Main Interactive Section: Asymmetric Layout -->
-<div class="grid grid-cols-12 gap-8 items-start">
-    
-    <!-- Left: Recognition Engine (8 Cols) -->
-    <div class="col-span-12 lg:col-span-8 space-y-6">
-        
-        <!-- Camera Section -->
-        <div class="bg-surface-container-lowest p-2 rounded-2xl shadow-sm border border-outline-variant/10">
-            <div class="flex justify-between items-center px-4 py-2 mb-2">
-                <h3 class="font-bold text-primary flex items-center gap-2">
-                    <span class="material-symbols-outlined text-sm">videocam</span> Live Feed
-                </h3>
-                <div class="flex gap-2">
-                    <button id="startCamBtn" onclick="startRecognition()" class="bg-primary text-white px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1 hover:bg-primary-container transition-colors disabled:opacity-50">
-                        <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span> Start
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <!-- Left: Camera & Engine -->
+    <div class="lg:col-span-8 space-y-6">
+        <div class="card p-0 overflow-hidden">
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-white">
+                <div class="flex items-center gap-2 text-indigo-600 font-black text-sm uppercase tracking-widest">
+                    <span class="material-symbols-rounded">videocam</span> Live System
+                </div>
+                <div id="camControl" class="flex gap-2">
+                    <button id="startCamBtn" onclick="startRecognition()" class="btn btn-primary btn-sm rounded-lg">
+                        <span class="material-symbols-rounded">play_arrow</span> Start
                     </button>
-                    <button id="stopCamBtn" onclick="stopRecognition()" style="display:none" class="bg-error text-white px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1 hover:bg-error/80 transition-colors">
-                        <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">stop</span> Stop
+                    <button id="stopCamBtn" onclick="stopRecognition()" style="display:none" class="btn btn-danger btn-sm rounded-lg">
+                        <span class="material-symbols-rounded">stop</span> Stop
                     </button>
                 </div>
             </div>
-
-            <div class="relative group aspect-video bg-slate-900 rounded-xl overflow-hidden shadow-inner border border-slate-800 video-parent" style="min-height: 300px;">
+            
+            <div class="video-viewport">
                 {% if model_trained %}
                     <video id="videoFeed" autoplay playsinline class="z-10"></video>
                     <canvas id="recognitionCanvas" class="z-20"></canvas>
                     
-                    <!-- AI Overlay Elements -->
                     <div id="scanningOverlay" class="absolute inset-0 z-30 pointer-events-none" style="display:none;">
-                        <div class="absolute inset-x-8 inset-y-8 border-2 border-primary/40 rounded-3xl flex items-center justify-center">
-                            <div class="scanner-line shadow-[0_0_15px_#00236f]"></div>
-                            <!-- Corner Brackets -->
-                            <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-xl"></div>
-                            <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-xl"></div>
-                            <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-xl"></div>
-                            <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-xl"></div>
+                        <div class="absolute inset-8 border border-white/20 rounded-2xl flex items-center justify-center">
+                            <div class="scanner-line shadow-[0_0_15px_rgba(79,70,229,0.5)]"></div>
+                            <div class="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-indigo-500 rounded-tl-lg"></div>
+                            <div class="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-indigo-500 rounded-tr-lg"></div>
+                            <div class="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-indigo-500 rounded-bl-lg"></div>
+                            <div class="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-indigo-500 rounded-br-lg"></div>
                         </div>
                         
-                        <div class="absolute top-4 left-4 flex items-center gap-3 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-                            <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                            <span class="text-white text-[10px] font-bold tracking-widest uppercase" id="faceCount">Scanning</span>
+                        <div class="absolute top-4 left-4 flex items-center gap-2 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-white">
+                            <div class="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse"></div>
+                            <span class="text-[9px] font-black tracking-widest uppercase" id="faceCount">Scanning Engine</span>
                         </div>
                     </div>
                 {% else %}
-                    <div class="absolute inset-0 z-30 flex flex-col items-center justify-center text-center p-6 text-white">
-                        <span class="material-symbols-outlined text-4xl mb-4 text-slate-500">model_training</span>
-                        <h3 class="text-lg font-bold mb-2">Model Not Trained</h3>
-                        <p class="text-xs text-slate-400 mb-6 max-w-sm">Please train the face recognition model before starting the live attendance feed.</p>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-8 bg-slate-900">
+                        <span class="material-symbols-rounded text-indigo-500/20 text-6xl mb-6">psychology</span>
+                        <h3 class="text-white text-xl font-800 mb-2">Cognitive Core Offline</h3>
+                        <p class="text-slate-500 text-sm max-w-xs mb-8">The AI engine needs training to recognize students on this campus.</p>
                         <form method="POST" action="{{ url_for('train_model') }}">
-                            <button type="submit" class="bg-primary text-white font-bold py-2 px-6 rounded-xl hover:bg-primary-container transition-colors">
-                                Train Model Now
-                            </button>
+                            <button type="submit" class="btn btn-primary px-8">Initialize AI Engine</button>
                         </form>
                     </div>
                 {% endif %}
 
-                <!-- Recognition Feedback Card (Success State) -->
-                <div id="lastMatchCard" class="absolute bottom-4 right-4 w-72 z-40" style="display:none;">
-                    <div class="bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl p-4 border-l-8 border-primary animate-slide-in">
-                        <div class="flex justify-between items-start mb-2">
-                            <h3 class="font-bold text-primary text-sm truncate" id="lastMatchName">Student Name</h3>
-                            <span id="lastMatchConf" class="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full shrink-0">100%</span>
+                <!-- Match Feedback -->
+                <div id="lastMatchCard" class="absolute bottom-6 right-6 w-72 z-40" style="display:none;">
+                    <div class="glass shadow-2xl p-5 rounded-2xl border-l-[6px] border-indigo-500 animate-slide-in">
+                        <div class="flex justify-between items-start gap-2 mb-3">
+                            <div class="min-w-0">
+                                <h3 id="lastMatchName" class="font-black text-slate-900 text-sm truncate uppercase tracking-tight">Student Name</h3>
+                                <p id="lastMatchReg" class="text-[10px] text-slate-500 font-bold">REG: STUDENT_ID</p>
+                            </div>
+                            <div id="lastMatchConf" class="bg-indigo-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full">98%</div>
                         </div>
-                        <p id="lastMatchReg" class="text-[11px] text-on-surface-variant font-medium">REG1234 • Room</p>
-                        <div class="mt-2 flex items-center gap-1.5">
-                            <span class="w-1.5 h-1.5 bg-primary rounded-full" id="lastMatchDot"></span>
-                            <span id="lastMatchStatus" class="text-[10px] font-bold uppercase text-primary tracking-wide">Present</span>
+                        <div class="flex items-center gap-2">
+                            <div id="lastMatchDot" class="w-2 h-2 rounded-full bg-indigo-500"></div>
+                            <span id="lastMatchStatus" class="text-[10px] font-black text-indigo-600 uppercase tracking-widest">VERIFIED</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Recognition Log Section -->
-        <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/10 overflow-hidden">
-            <div class="px-6 py-4 border-b border-surface-container flex justify-between items-center bg-surface w-full">
-                <h3 class="font-bold text-primary flex items-center gap-2">
-                    <span class="material-symbols-outlined text-sm">history</span> Session Log
+        <!-- Activity Log -->
+        <div class="card p-0">
+            <div class="card-header bg-slate-50">
+                <h3 class="flex items-center gap-2">
+                    <span class="material-symbols-rounded">history</span> Session Logs
                 </h3>
-                <button onclick="clearLog()" class="text-[10px] font-bold text-slate-500 hover:text-error uppercase tracking-wider">
-                    Clear Log
-                </button>
+                <button onclick="clearLog()" class="text-[10px] font-bold text-slate-400 hover:text-rose-500 uppercase tracking-widest transition-colors">Reset Session Logs</button>
             </div>
-            <div class="overflow-y-auto max-h-64" id="logEntries">
-                <!-- Log entries will be inserted here -->
-                <div class="p-6 text-center text-slate-400 text-sm font-medium">
-                    <span class="material-symbols-outlined block text-3xl mb-2 opacity-50">data_alert</span>
-                    Start the camera to begin recognition logging.
+            <div id="logEntries" class="max-h-[300px] overflow-y-auto divide-y divide-slate-100">
+                <div class="p-10 text-center text-slate-400">
+                    <span class="material-symbols-rounded text-4xl mb-2 opacity-20">sensors_off</span>
+                    <p class="text-xs font-bold uppercase tracking-widest">Waiting for sensor data</p>
                 </div>
             </div>
         </div>
-        
     </div>
 
-    <!-- Right: Information Bento (4 Cols) -->
-    <div class="col-span-12 lg:col-span-4 space-y-6">
-        
-        <!-- Manual Action Card -->
-        <div class="bg-surface-container-lowest p-6 rounded-xl relative overflow-hidden shadow-sm border border-outline-variant/10 group">
-            <div class="relative z-10">
-                <h3 class="text-lg font-bold text-blue-900 mb-1 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">edit_square</span> 
-                    Manual Entry
-                </h3>
-                <p class="text-[11px] text-slate-500 mb-6 font-medium">Force mark attendance for a specific student.</p>
+    <!-- Right: Controls -->
+    <div class="lg:col-span-4 space-y-6">
+        <!-- Manual Marker -->
+        <div class="card bg-indigo-600 text-white border-none shadow-xl overflow-hidden group">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-white/5 -mr-16 -mt-16 rounded-full"></div>
+            <div class="p-6 relative z-10">
+                <h3 class="text-lg font-black mb-1">Manual Override</h3>
+                <p class="text-[10px] text-indigo-200 font-bold uppercase tracking-widest mb-6">Force status injection</p>
                 
                 <form method="POST" action="{{ url_for('mark_manual') }}" class="space-y-4">
-                    <div>
-                        <input type="text" name="reg_num" class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 rounded-t-lg px-4 py-2.5 text-sm transition-colors" placeholder="Registration ID (e.g. 2023CS001)" list="studentList" required autocomplete="off">
+                    <div class="relative">
+                        <input type="text" name="reg_num" class="w-full bg-indigo-500/50 border-none rounded-xl px-4 py-3 text-sm text-white placeholder:text-indigo-200 focus:ring-2 focus:ring-white/30" placeholder="Enter Registration ID" list="studentList" required>
                         <datalist id="studentList">
                             {% for item in records %}
                                 <option value="{{ item.student.registration_number }}">{{ item.student.name }}</option>
                             {% endfor %}
                         </datalist>
                     </div>
-                    <div>
-                        <select name="status" class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 rounded-t-lg px-4 py-2.5 text-sm transition-colors">
-                            <option value="Present">Present</option>
-                            <option value="Late">Late</option>
-                            <option value="Absent">Absent</option>
-                            <option value="Leave">Leave</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="w-full bg-primary text-white font-bold py-2.5 rounded-xl shadow hover:bg-primary-container transition-colors flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined text-sm">check</span> Apply Status
+                    <select name="status" class="w-full bg-indigo-500/50 border-none rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-white/30">
+                        <option value="Present" class="text-slate-900">Present</option>
+                        <option value="Late" class="text-slate-900">Late</option>
+                        <option value="Absent" class="text-slate-900">Absent</option>
+                        <option value="Leave" class="text-slate-900">Leave</option>
+                    </select>
+                    <button type="submit" class="w-full bg-white text-indigo-600 font-black py-4 rounded-xl shadow-lg hover:shadow-2xl hover:scale-[1.02] active:scale-95 transition-all text-sm uppercase tracking-widest">
+                        Apply Intervention
                     </button>
                 </form>
             </div>
-            <span class="material-symbols-outlined absolute -right-6 -bottom-6 text-9xl text-slate-100 group-hover:scale-110 transition-transform duration-700 pointer-events-none">edit_document</span>
         </div>
 
-        <!-- Global Actions Bento -->
-        <div class="bg-error-container/30 p-6 rounded-xl shadow-sm border border-error/20 group">
-            <h4 class="font-bold text-error mb-2 flex items-center gap-2">
-                <span class="material-symbols-outlined text-sm">warning</span> Batch Operations
-            </h4>
-            <p class="text-[11px] text-on-surface-variant mb-4">Finalize the day by marking all remaining unmarked students as absent.</p>
-            <form method="POST" action="{{ url_for('mark_absent_all_ui') }}" onsubmit="return confirm('Are you sure you want to mark all remaining unmarked students as absent for today?');">
-                <button type="submit" class="w-full bg-error text-white font-bold py-2.5 rounded-xl shadow hover:bg-error/80 transition-colors flex items-center justify-center gap-2">
-                    <span class="material-symbols-outlined text-sm">group_off</span> Mark Remaining Absent
-                </button>
-            </form>
-        </div>
-
-        <!-- Today's Records List -->
-        <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-outline-variant/10 flex flex-col h-[400px]">
-            <div class="flex justify-between items-center mb-4 shrink-0">
-                <h4 class="font-bold text-primary flex items-center gap-2">
-                    <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">list_alt</span> 
-                    Today's Marking
-                </h4>
-                <span class="px-2 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded-full">{{ records|length }} total</span>
+        <!-- End Day Action -->
+        <div class="card border-rose-100 bg-rose-50/30">
+            <div class="p-5">
+                <h4 class="text-rose-600 font-black text-xs uppercase tracking-widest mb-2">Maintenance Window</h4>
+                <p class="text-[11px] text-slate-500 font-medium mb-6 leading-relaxed">Batch update all remaining unmarked students as absent. This action is final for today's roster.</p>
+                <form method="POST" action="{{ url_for('mark_absent_all_ui') }}" onsubmit="return confirm('Execute batch absent marking?');">
+                    <button type="submit" class="btn btn-danger btn-full text-[10px] tracking-widest">Execute Batch Absent</button>
+                </form>
             </div>
-            
-            <div class="overflow-y-auto pr-2 space-y-3 flex-1">
+        </div>
+
+        <!-- Rapid List -->
+        <div class="card p-0 flex flex-col h-[400px]">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="text-sm font-black text-slate-900 uppercase tracking-tight">Today's Feed</h3>
+                <span class="bg-indigo-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full">{{ records|length }}</span>
+            </div>
+            <div class="overflow-y-auto flex-1 divide-y divide-slate-50">
                 {% if records %}
                     {% for item in records|sort(attribute='marked_at', reverse=True) %}
-                    <div class="flex items-center gap-3 p-3 rounded-lg bg-surface hover:bg-surface-container-low transition-colors border border-outline-variant/5">
-                        <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0 text-sm">
+                    <div class="p-4 flex items-center gap-3 hover:bg-slate-50 transition-colors">
+                        <div class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center font-black text-slate-500 text-sm">
                             {{ item.student.name[0]|upper }}
                         </div>
                         <div class="flex-1 min-w-0">
-                            <div class="text-xs font-bold text-on-surface truncate">{{ item.student.name }}</div>
-                            <div class="text-[10px] text-slate-500 truncate">{{ item.student.room_number }}</div>
+                            <h4 class="text-xs font-black text-slate-900 truncate">{{ item.student.name }}</h4>
+                            <p class="text-[9px] text-slate-400 font-bold truncate">ROOM {{ item.student.room_number }}</p>
                         </div>
-                        <div class="shrink-0 flex flex-col items-end">
-                            <span class="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full 
-                                {% if item.status == 'Present' %}bg-green-100 text-green-700
-                                {% elif item.status == 'Late' %}bg-tertiary-fixed text-on-tertiary-fixed
-                                {% elif item.status == 'Absent' %}bg-error-container text-on-error-container
-                                {% else %}bg-surface-container-high text-on-surface-variant{% endif %}">
+                        <div class="text-right">
+                            <span class="badge {% if item.status == 'Present' %}badge-present{% elif item.status == 'Absent' %}badge-absent{% else %}badge-late{% endif %} text-[8px] font-black tracking-tighter">
                                 {{ item.status }}
                             </span>
-                            <span class="text-[9px] text-slate-400 mt-1">{{ item.marked_at.strftime('%I:%M %p') if item.marked_at else '' }}</span>
+                            <span class="block text-[8px] font-bold text-slate-300 mt-1 uppercase">{{ item.marked_at.strftime('%I:%M %p') if item.marked_at else '' }}</span>
                         </div>
                     </div>
                     {% endfor %}
                 {% else %}
-                    <div class="h-full flex flex-col items-center justify-center text-slate-400 opacity-60">
-                        <span class="material-symbols-outlined text-4xl mb-2">assignment</span>
-                        <span class="text-xs font-medium">No records yet today</span>
+                    <div class="h-full flex flex-col items-center justify-center text-slate-300 opacity-30 p-10 text-center">
+                        <span class="material-symbols-rounded text-5xl mb-2">clinical_notes</span>
+                        <p class="text-[10px] font-black uppercase tracking-widest">Feed Empty</p>
                     </div>
                 {% endif %}
             </div>
         </div>
-
     </div>
 </div>
 {% endblock %}
@@ -264,8 +221,7 @@ let videoStream = null;
 let recognitionActive = false;
 let recognitionInterval = null;
 const recentlyMarked = {};
-const COOLDOWN_MS = 15000;
-let emptyLog = true;
+const COOLDOWN_MS = 10000; // 10s cooldown for visual feedback repeat
 
 async function startRecognition() {
     try {
@@ -277,47 +233,29 @@ async function startRecognition() {
         recognitionActive = true;
 
         document.getElementById('startCamBtn').style.display = 'none';
-        document.getElementById('stopCamBtn').style.display = 'flex';
-        document.getElementById('startCamBtn').disabled = true;
-        
+        document.getElementById('stopCamBtn').style.display = 'inline-flex';
         document.getElementById('scanningOverlay').style.display = 'block';
 
-        if(emptyLog) {
-            document.getElementById('logEntries').innerHTML = '';
-            emptyLog = false;
-        }
-        addLog('Camera started. Scanning for faces...', 'info');
+        addLog('Optical scanning activated', 'info');
         
-        // Match interval to video frame readiness
         videoEl.onloadedmetadata = () => {
             recognitionInterval = setInterval(runRecognition, 1500);
         };
     } catch (err) {
-        if(emptyLog) {
-            document.getElementById('logEntries').innerHTML = '';
-            emptyLog = false;
-        }
-        addLog('Camera access denied or error: ' + err.message, 'error');
+        addLog('Sensor access fatal: ' + err.message, 'error');
     }
 }
 
 function stopRecognition() {
-    if (videoStream) {
-        videoStream.getTracks().forEach(t => t.stop());
-        videoStream = null;
-    }
+    if (videoStream) videoStream.getTracks().forEach(t => t.stop());
     recognitionActive = false;
-    if (recognitionInterval) {
-        clearInterval(recognitionInterval);
-        recognitionInterval = null;
-    }
-    document.getElementById('startCamBtn').style.display = 'flex';
-    document.getElementById('startCamBtn').disabled = false;
+    if (recognitionInterval) clearInterval(recognitionInterval);
+    
+    document.getElementById('startCamBtn').style.display = 'inline-flex';
     document.getElementById('stopCamBtn').style.display = 'none';
     document.getElementById('scanningOverlay').style.display = 'none';
     document.getElementById('lastMatchCard').style.display = 'none';
-    addLog('Camera stopped.', 'info');
-    document.getElementById('faceCount').innerText = 'Paused';
+    addLog('Optical scanning terminated', 'info');
 }
 
 async function runRecognition() {
@@ -326,10 +264,8 @@ async function runRecognition() {
     if(video.videoWidth === 0) return;
 
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0);
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
     const imageData = canvas.toDataURL('image/jpeg', 0.8);
 
     try {
@@ -340,155 +276,85 @@ async function runRecognition() {
         });
         const data = await resp.json();
 
-        document.getElementById('faceCount').innerText = `${data.faces_count || 0} Faces detected`;
+        document.getElementById('faceCount').innerText = `${data.faces_count || 0} Entities detected`;
 
         if (data.results && data.results.length > 0) {
-            for (const result of data.results) {
+            data.results.forEach(result => {
                 const now = Date.now();
                 const key = result.reg_num || 'unknown';
                 
-                // Allow frequent logging of 'Unknown' to alert guards, limit known students
-                if (key !== 'unknown' && now - (recentlyMarked[key] || 0) < COOLDOWN_MS) continue;
-                if (key !== 'unknown') {
-                    recentlyMarked[key] = now;
-                }
+                if (key !== 'unknown' && now - (recentlyMarked[key] || 0) < COOLDOWN_MS) return;
+                if (key !== 'unknown') recentlyMarked[key] = now;
 
-                logResultToTable(result);
-                
-                if (result.success || result.reg_num) {
-                    showLastMatch(result);
-                }
-            }
+                appendLogEntry(result);
+                if (result.success || result.reg_num) showMatchUI(result);
+            });
         }
-    } catch (err) {
-        console.error("Recognition error", err);
-    }
+    } catch (err) { console.error(err); }
 }
 
-function showLastMatch(data) {
+function showMatchUI(data) {
     const card = document.getElementById('lastMatchCard');
-    document.getElementById('lastMatchName').textContent = data.name !== 'Unknown' ? data.name : 'Unknown Identity';
-    document.getElementById('lastMatchReg').textContent = data.reg_num ? `${data.reg_num} • Rm ${data.room}` : 'Unauthorized / Not found';
-    
-    document.getElementById('lastMatchConf').textContent = `${(data.confidence || 0).toFixed(1)}%`;
+    document.getElementById('lastMatchName').textContent = data.name;
+    document.getElementById('lastMatchReg').textContent = data.reg_num ? `REG: ${data.reg_num} • RM ${data.room}` : 'UNAUTHORIZED ACCESS';
+    document.getElementById('lastMatchConf').textContent = `${(data.confidence || 0).toFixed(0)}%`;
     
     const statusEl = document.getElementById('lastMatchStatus');
     const dotEl = document.getElementById('lastMatchDot');
-    
-    let statusText = data.status || 'Verified';
-    let borderColor = 'border-primary';
-    let textColor = 'text-primary';
-    let dotColor = 'bg-primary';
+    const innerCard = card.querySelector('.glass');
 
-    if (!data.success && data.name === 'Unknown') {
-        statusText = 'Unrecognized';
-        borderColor = 'border-error';
-        textColor = 'text-error';
-        dotColor = 'bg-error';
-        document.getElementById('lastMatchConf').className = `text-[10px] font-bold bg-error/10 ${textColor} px-2 py-0.5 rounded-full shrink-0`;
-    } else if (data.status === 'Late') {
-        borderColor = 'border-on-tertiary-container';
-        textColor = 'text-on-tertiary-container';
-        dotColor = 'bg-on-tertiary-container';
-        document.getElementById('lastMatchConf').className = `text-[10px] font-bold bg-tertiary-fixed/30 ${textColor} px-2 py-0.5 rounded-full shrink-0`;
+    if (data.name === 'Unknown') {
+        statusEl.textContent = 'SECURITY ALERT';
+        statusEl.className = 'text-[10px] font-black text-rose-500 uppercase tracking-widest';
+        dotEl.className = 'w-2 h-2 rounded-full bg-rose-500';
+        innerCard.className = 'glass shadow-2xl p-5 rounded-2xl border-l-[6px] border-rose-500 animate-slide-in';
     } else {
-        document.getElementById('lastMatchConf').className = `text-[10px] font-bold bg-primary/10 ${textColor} px-2 py-0.5 rounded-full shrink-0`;
+        statusEl.textContent = data.status.toUpperCase();
+        innerCard.className = 'glass shadow-2xl p-5 rounded-2xl border-l-[6px] border-indigo-500 animate-slide-in';
     }
-    
-    statusEl.textContent = statusText.toUpperCase();
-    statusEl.className = `text-[10px] font-bold uppercase ${textColor} tracking-wide`;
-    dotEl.className = `w-1.5 h-1.5 rounded-full ${dotColor}`;
-    card.firstElementChild.className = `bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl p-4 border-l-8 ${borderColor} animate-slide-in`;
     
     card.style.display = 'block';
-    
-    // Re-trigger animation
-    card.firstElementChild.style.animation = 'none';
-    card.firstElementChild.offsetHeight; /* trigger reflow */
-    card.firstElementChild.style.animation = null;
+    setTimeout(() => { if(card.style.display === 'block') card.style.display = 'none'; }, 4000);
 }
 
-function logResultToTable(result) {
+function appendLogEntry(result) {
     const container = document.getElementById('logEntries');
-    
-    // Convert old list style to table row style
-    if (!container.querySelector('table')) {
-        container.innerHTML = `
-        <table class="w-full text-left">
-            <thead class="bg-surface-container-low text-[10px] uppercase tracking-widest text-on-surface-variant font-bold sticky top-0">
-                <tr>
-                    <th class="px-4 py-2 font-medium">Time</th>
-                    <th class="px-4 py-2 font-medium">Identity</th>
-                    <th class="px-4 py-2 font-medium text-right">Status</th>
-                </tr>
-            </thead>
-            <tbody id="logTbody" class="divide-y divide-surface-container"></tbody>
-        </table>`;
-    }
-    
-    const tbody = document.getElementById('logTbody');
-    const tr = document.createElement('tr');
-    tr.className = "hover:bg-surface-container-low transition-colors";
+    if (container.querySelector('p')) container.innerHTML = ''; // Clear placeholder
+
+    const entry = document.createElement('div');
+    entry.className = 'p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors';
     
     const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-    const isUnknown = result.name === 'Unknown' || !result.success;
+    const isUnknown = result.name === 'Unknown';
     
-    let confidenceClass = isUnknown ? 'bg-error text-error' : (result.status === 'Late' ? 'bg-on-tertiary-container text-on-tertiary-container' : 'bg-primary text-primary');
-    let statusBadge = isUnknown ? 
-        `<span class="px-2 py-0.5 bg-error-container text-on-error-container text-[9px] font-bold rounded-full uppercase">Alert</span>` : 
-        `<span class="px-2 py-0.5 bg-primary-fixed text-on-primary-fixed text-[9px] font-bold rounded-full uppercase">${result.status}</span>`;
-
-    let avatarHtml = isUnknown ? 
-        `<div class="w-8 h-8 rounded-full bg-error-container/40 flex items-center justify-center text-error"><span class="material-symbols-outlined text-sm">person_off</span></div>` :
-        `<div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">${result.name[0]}</div>`;
-
-    let identityTextClass = isUnknown ? 'text-error' : 'text-primary';
-
-    tr.innerHTML = `
-        <td class="px-4 py-3 text-xs text-on-surface-variant whitespace-nowrap">${time}</td>
-        <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-                ${avatarHtml}
-                <div class="min-w-0">
-                    <div class="text-xs font-bold ${identityTextClass} truncate">${result.name}</div>
-                    <div class="text-[9px] text-slate-500 truncate">${result.reg_num ? result.reg_num : 'Unauthorized'} • ${(result.confidence || 0).toFixed(0)}% Match</div>
-                </div>
+    entry.innerHTML = `
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg ${isUnknown ? 'bg-rose-100 text-rose-600' : 'bg-indigo-100 text-indigo-600'} flex items-center justify-center font-black text-[10px]">
+                ${isUnknown ? '!!' : result.name[0]}
             </div>
-        </td>
-        <td class="px-4 py-3 text-right">
-            ${statusBadge}
-        </td>
+            <div>
+                <p class="text-xs font-black ${isUnknown ? 'text-rose-600' : 'text-slate-900'}">${result.name}</p>
+                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${time} • ${result.reg_num || 'ACCESS DENIED'}</p>
+            </div>
+        </div>
+        <div class="text-right">
+            <span class="text-[9px] font-black p-1.5 rounded-lg ${isUnknown ? 'bg-rose-50 text-rose-600' : 'bg-indigo-50 text-indigo-600'}">
+                ${(result.confidence || 0).toFixed(0)}% MATCH
+            </span>
+        </div>
     `;
     
-    tbody.insertBefore(tr, tbody.firstChild);
-    while (tbody.children.length > 50) tbody.removeChild(tbody.lastChild);
+    container.insertBefore(entry, container.firstChild);
+    if (container.children.length > 20) container.removeChild(container.lastChild);
 }
 
-function addLog(message, type = 'info') {
-    // Basic system messages go above the table
-    const container = document.getElementById('logEntries');
-    const div = document.createElement('div');
-    div.className = `p-3 m-2 text-xs rounded border border-l-4 font-medium mb-4 ` + 
-        (type === 'error' ? 'bg-error-container text-error border-error' : 'bg-surface-container text-primary border-primary');
-    div.innerText = message;
-    container.insertBefore(div, container.firstChild);
-    
-    // clear basic logs after 5 seconds to keep view clean for table
-    setTimeout(() => { if(div.parentNode) div.parentNode.removeChild(div); }, 5000);
+function addLog(msg, type) {
+    appendLogEntry({name: 'SYSTEM', reg_num: msg, confidence: 100, status: type});
 }
 
 function clearLog() {
-    emptyLog = true;
-    document.getElementById('logEntries').innerHTML = `
-        <div class="p-6 text-center text-slate-400 text-sm font-medium">
-            <span class="material-symbols-outlined block text-3xl mb-2 opacity-50">data_alert</span>
-            Log cleared.
-        </div>`;
+    document.getElementById('logEntries').innerHTML = '<div class="p-10 text-center text-slate-400 font-bold text-xs uppercase tracking-widest opacity-20">Buffer Cleared</div>';
 }
-
-window.addEventListener('beforeunload', () => {
-    if (videoStream) videoStream.getTracks().forEach(t => t.stop());
-});
 {% endif %}
 </script>
 {% endblock %}

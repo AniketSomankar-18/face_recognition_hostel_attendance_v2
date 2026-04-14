@@ -11,8 +11,14 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
-    role = db.Column(db.String(20), default='warden')
+    role = db.Column(db.String(20), default='warden') # rector | warden
+    hostel_code = db.Column(db.String(10), nullable=True) # N | SH | D | K | G | None for Rector
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def is_rector(self):
+        """Strict role-based check for Rector permissions."""
+        return self.role == 'rector'
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -32,6 +38,7 @@ class Student(db.Model):
     parent_phone = db.Column(db.String(15), nullable=False)
     email = db.Column(db.String(120), nullable=False)
     face_encoded = db.Column(db.Boolean, default=False)
+    face_samples_count = db.Column(db.Integer, default=0)
     is_active = db.Column(db.Boolean, default=True)
     absence_count = db.Column(db.Integer, default=0)   # cumulative absence count
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

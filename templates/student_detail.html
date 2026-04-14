@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}{{ student.name }} Details – Hostel Excellence{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 w-full">
+        <div class="flex items-center gap-6">
+            <div class="w-16 h-16 md:w-20 md:h-20 rounded-3xl bg-indigo-600 text-white flex items-center justify-center font-black text-2xl md:text-3xl shadow-xl">
+                {{ student.name[0]|upper }}
+            </div>
+            <div>
+                <h1 class="page-title">{{ student.name }}</h1>
+                <div class="flex flex-wrap items-center gap-3 text-slate-500 font-medium">
+                    <span class="flex items-center gap-1">
+                        <span class="material-symbols-rounded text-sm">badge</span>
+                        {{ student.registration_number }}
+                    </span>
+                    <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+                    <span class="flex items-center gap-1 text-indigo-600">
+                        <span class="material-symbols-rounded text-sm">meeting_room</span>
+                        Room {{ student.room_number }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex gap-3">
+            <a href="{{ url_for('capture_face', reg_num=student.registration_number) }}" class="btn btn-primary">
+                <span class="material-symbols-rounded">face</span> Enroll Biometrics
+            </a>
+            <a href="{{ url_for('edit_student', reg_num=student.registration_number) }}" class="btn btn-outline">
+                <span class="material-symbols-rounded">edit</span> Edit
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <!-- Left: Resident Intelligence -->
+    <div class="lg:col-span-4 space-y-8">
+        <!-- Contact & Identity -->
+        <div class="card p-8 bg-white border border-slate-100">
+            <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6 pb-4 border-b border-slate-50">Identity & Contact</h3>
+            
+            <div class="space-y-6">
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Department</label>
+                    <p class="text-sm font-bold text-slate-900">{{ student.department or 'Not Specified' }}</p>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Mobile Contact</label>
+                    <p class="text-sm font-bold text-slate-900">{{ student.phone or 'No Data' }}</p>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Parent Contact</label>
+                    <p class="text-sm font-bold text-slate-900">{{ student.parent_phone or 'No Data' }}</p>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Campus Email</label>
+                    <p class="text-sm font-bold text-slate-900">{{ student.email or 'N/A' }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Biometric Status -->
+        <div class="card p-8 bg-white border border-slate-100">
+            <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6 pb-4 border-b border-slate-50">Biometric Health</h3>
+            
+            {% set img_count = student.face_samples_count %}
+            {% set progress = (img_count / 20 * 100)|round|int %}
+            {% if progress > 100 %}{% set progress = 100 %}{% endif %}
+
+            <div class="flex items-center justify-between mb-4">
+                <span class="text-sm font-black text-slate-900">Training Progress</span>
+                <span class="text-[10px] font-black text-indigo-600">{{ img_count }}/20 Samples</span>
+            </div>
+
+            <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden mb-6">
+                <div class="h-full bg-indigo-600 rounded-full transition-all duration-1000" style="width: {{ progress }}%"></div>
+            </div>
+
+            {% if img_count >= 20 %}
+            <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center gap-3 text-emerald-600">
+                <span class="material-symbols-rounded text-xl">verified_user</span>
+                <p class="text-[10px] font-black uppercase tracking-wider">Calibration Complete</p>
+            </div>
+            {% else %}
+            <div class="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-center gap-3 text-amber-600">
+                <span class="material-symbols-rounded text-xl">error</span>
+                <p class="text-[10px] font-black uppercase tracking-wider">Calibration Required</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right: Attendance Telemetry -->
+    <div class="lg:col-span-8">
+        <div class="card p-0 bg-white border border-slate-100 overflow-hidden">
+            <div class="px-8 py-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                    <span class="material-symbols-rounded text-indigo-600">history</span>
+                    Recent Activity
+                </h3>
+                <span class="text-[10px] font-bold text-slate-400">Last 10 Records</span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="text-[10px] uppercase font-black text-slate-400 tracking-widest border-b border-slate-100">
+                            <th class="px-8 py-4">Date</th>
+                            <th class="px-8 py-4">Status</th>
+                            <th class="px-8 py-4">Time Captured</th>
+                            <th class="px-8 py-4">Authenticated By</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-50">
+                        {% for record in attendance %}
+                        <tr class="hover:bg-slate-50/50 transition-colors">
+                            <td class="px-8 py-4 text-sm font-bold text-slate-900">
+                                {{ record.date.strftime('%d %b, %Y') }}
+                            </td>
+                            <td class="px-8 py-4">
+                                <span class="badge 
+                                    {% if record.status == 'Present' %}badge-present
+                                    {% elif record.status == 'Absent' %}badge-absent
+                                    {% elif record.status == 'Late' %}badge-late
+                                    {% else %}badge-leave{% endif %}">
+                                    {{ record.status }}
+                                </span>
+                            </td>
+                            <td class="px-8 py-4 text-sm font-medium text-slate-500">
+                                {{ record.marked_at.strftime('%I:%M %p') if record.marked_at else '--:--' }}
+                            </td>
+                            <td class="px-8 py-4">
+                                <div class="flex items-center gap-2 text-[11px] font-black text-slate-400 uppercase tracking-wider">
+                                    <span class="material-symbols-rounded text-xs">shield_person</span>
+                                    {{ record.marked_by or 'System' }}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not attendance %}
+                        <tr>
+                            <td colspan="4" class="px-8 py-16 text-center">
+                                <div class="flex flex-col items-center">
+                                    <span class="material-symbols-rounded text-4xl text-slate-200 mb-4">folder_off</span>
+                                    <p class="text-sm font-bold text-slate-400 italic">No telemetry data recorded for this resident</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

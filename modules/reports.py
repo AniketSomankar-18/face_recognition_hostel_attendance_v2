@@ -6,7 +6,7 @@ from models import Student, Attendance, Leave, db
 from sqlalchemy import extract
 
 
-def generate_excel_report(month=None, year=None):
+def generate_excel_report(month=None, year=None, hostel_code='ALL'):
     """
     Generate an Excel attendance report.
     Returns: BytesIO object with Excel data.
@@ -15,10 +15,12 @@ def generate_excel_report(month=None, year=None):
     month = month or today.month
     year = year or today.year
 
-    # Get all active students
-    students = Student.query.filter_by(is_active=True).order_by(
-        Student.room_number, Student.name
-    ).all()
+    # Filter students by hostel
+    student_query = Student.query.filter_by(is_active=True)
+    if hostel_code != 'ALL':
+        student_query = student_query.filter(Student.room_number.like(f"{hostel_code} %"))
+        
+    students = student_query.order_by(Student.room_number, Student.name).all()
 
     # Get attendance records for the month
     records = Attendance.query.filter(
@@ -157,7 +159,7 @@ def generate_excel_report(month=None, year=None):
     return output
 
 
-def generate_absent_pdf(target_date=None):
+def generate_absent_pdf(target_date=None, hostel_code='ALL'):
     """
     Generate PDF report of absent students.
     Returns: BytesIO object with PDF data.
@@ -171,9 +173,16 @@ def generate_absent_pdf(target_date=None):
 
     report_date = target_date or date.today()
 
-    absent_records = Attendance.query.filter_by(
-        date=report_date, status='Absent'
-    ).all()
+    # Join with Student to filter by hostel
+    query = Attendance.query.join(Student, Attendance.registration_number == Student.registration_number).filter(
+        Attendance.date == report_date, 
+        Attendance.status == 'Absent'
+    )
+    
+    if hostel_code != 'ALL':
+        query = query.filter(Student.room_number.like(f"{hostel_code} %"))
+        
+    absent_records = query.all()
 
     output = io.BytesIO()
     doc = SimpleDocTemplate(output, pagesize=A4,
@@ -219,10 +228,12 @@ def generate_absent_pdf(target_date=None):
         # Table data
         table_data = [['#', 'Reg. Number', 'Name', 'Room', 'Department', 'Parent Phone']]
 
+        # Optimization: Fetch all needed students at once
+        absent_reg_nums = [r.registration_number for r in absent_records]
+        students_map = {s.registration_number: s for s in Student.query.filter(Student.registration_number.in_(absent_reg_nums)).all()}
+
         for idx, record in enumerate(absent_records, 1):
-            student = Student.query.filter_by(
-                registration_number=record.registration_number
-            ).first()
+            student = students_map.get(record.registration_number)
             if student:
                 table_data.append([
                     str(idx),
@@ -270,20 +281,33 @@ def generate_absent_pdf(target_date=None):
     return output
 
 
-def get_monthly_stats(month, year):
-    """Get monthly attendance statistics."""
+def get_monthly_stats(month, year, hostel_code='ALL'):
+    """Get monthly attendance statistics (Optimized + Hostel Filter)."""
     import calendar
-    students = Student.query.filter_by(is_active=True).all()
+    
+    student_query = Student.query.filter_by(is_active=True)
+    if hostel_code != 'ALL':
+        student_query = student_query.filter(Student.room_number.like(f"{hostel_code} %"))
+        
+    students = student_query.all()
     num_days = calendar.monthrange(year, month)[1]
+
+    # Optimization: Fetch all monthly records at once and group them
+    from sqlalchemy import extract
+    all_records = Attendance.query.filter(
+        extract('month', Attendance.date) == month,
+        extract('year', Attendance.date) == year
+    ).all()
+    
+    attendance_by_student = {}
+    for r in all_records:
+        if r.registration_number not in attendance_by_student:
+            attendance_by_student[r.registration_number] = []
+        attendance_by_student[r.registration_number].append(r)
 
     stats = []
     for student in students:
-        records = Attendance.query.filter_by(
-            registration_number=student.registration_number
-        ).filter(
-            extract('month', Attendance.date) == month,
-            extract('year', Attendance.date) == year
-        ).all()
+        records = attendance_by_student.get(student.registration_number, [])
 
         present = sum(1 for r in records if r.status == 'Present')
         late = sum(1 for r in records if r.status == 'Late')

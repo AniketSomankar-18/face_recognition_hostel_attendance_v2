@@ -2,143 +2,130 @@
 {% block title %}Directory – Hostel Excellence{% endblock %}
 
 {% block content %}
-<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-    <div>
-        <h1 class="text-3xl font-extrabold text-on-surface tracking-tight mb-2 flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">group</span>
-            Student Directory
-        </h1>
-        <p class="text-on-surface-variant font-medium">Manage residents, view profiles, and access biometric status.</p>
-    </div>
-    
-    <div class="flex gap-3">
-        <a href="{{ url_for('register_student') }}" class="bg-primary text-white px-6 py-2.5 rounded-xl font-bold shadow-sm flex items-center gap-2 hover:bg-primary-container transition-colors">
-            <span class="material-symbols-outlined text-sm">person_add</span> Register New
-        </a>
+<div class="page-header">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 w-full">
+        <div>
+            <h1 class="page-title">
+                <span class="material-symbols-rounded">group</span>
+                Student Directory
+            </h1>
+            <p class="text-slate-500 font-medium">Manage residents, view profiles, and biometric status</p>
+        </div>
+        
+        <div class="flex gap-3">
+            <a href="{{ url_for('register_student') }}" class="btn btn-primary">
+                <span class="material-symbols-rounded">person_add</span> Register New
+            </a>
+        </div>
     </div>
 </div>
 
 <!-- Filters / Search -->
-<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm border border-outline-variant/10 mb-6">
-    <form method="GET" class="flex flex-col md:flex-row gap-4">
+<div class="card p-6 mb-8 border-slate-100 bg-white">
+    <form method="GET" class="flex flex-col lg:flex-row gap-4">
         <!-- Search Input -->
         <div class="flex-1 relative">
-            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
-            <input type="text" name="search" value="{{ search }}" class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 pl-9 pr-4 py-2 text-sm transition-colors" placeholder="Search by name, ID, or room...">
+            <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                <span class="material-symbols-rounded">search</span>
+            </div>
+            <input type="text" name="search" value="{{ search }}" class="w-full bg-slate-50 border-none rounded-xl pl-12 pr-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500/20" placeholder="Search by name, ID, or room...">
         </div>
         
-        <!-- Department Filter -->
-        <div class="md:w-48 relative">
-            <select name="dept" class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 pl-4 pr-8 py-2 text-sm transition-colors appearance-none">
-                <option value="">All Departments</option>
-                {% for dept in departments %}
-                <option value="{{ dept }}" {% if selected_dept == dept %}selected{% endif %}>{{ dept }}</option>
-                {% endfor %}
-            </select>
-            <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">arrow_drop_down</span>
-        </div>
-        
-        <!-- Actions -->
-        <div class="flex gap-2">
-            <button type="submit" class="bg-surface-container-high text-primary px-4 py-2 border-b-2 border-primary rounded-t-lg font-bold hover:bg-surface-dim transition-colors flex items-center gap-1 text-sm">
-                Filter
-            </button>
-            <a href="{{ url_for('students') }}" class="px-4 py-2 text-slate-500 hover:text-error transition-colors flex items-center gap-1 text-sm font-bold">
-                Clear
-            </a>
+        <div class="flex flex-col md:flex-row gap-4">
+            <!-- Department Filter -->
+            <div class="md:w-64">
+                <select name="dept" class="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500/20 appearance-none">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept }}" {% if selected_dept == dept %}selected{% endif %}>{{ dept }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="flex gap-2">
+                <button type="submit" class="btn btn-primary px-6">Filter</button>
+                <a href="{{ url_for('students') }}" class="btn btn-outline px-6">Clear</a>
+            </div>
         </div>
     </form>
 </div>
 
-<!-- Directory Content -->
-<div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/10 overflow-hidden">
-    <div class="px-6 py-4 flex justify-between items-center bg-surface border-b border-surface-container">
-        <h3 class="font-bold text-blue-900 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-primary"></span> Roster
-        </h3>
-        <span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">{{ student_data|length }} Result{% if student_data|length != 1 %}s{% endif %}</span>
+<!-- Directory Roster -->
+<div class="card p-0 overflow-hidden bg-white">
+    <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+        <h3 class="text-xs font-black text-slate-900 uppercase tracking-widest">Resident Roster</h3>
+        <span class="bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-full">{{ student_data|length }} Profiles</span>
     </div>
 
     {% if student_data %}
     <div class="overflow-x-auto">
         <table class="w-full text-left">
-            <thead class="bg-surface-container-low text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
-                <tr>
-                    <th class="px-6 py-3 whitespace-nowrap hidden sm:table-cell">Identity</th>
-                    <th class="px-6 py-3 whitespace-nowrap">Student Details</th>
-                    <th class="px-6 py-3 whitespace-nowrap">Location</th>
-                    <th class="px-6 py-3 whitespace-nowrap">Biometrics</th>
-                    <th class="px-6 py-3 whitespace-nowrap text-right">Actions</th>
+            <thead>
+                <tr class="bg-slate-50/50 text-[10px] uppercase font-black text-slate-400 tracking-widest border-b border-slate-100">
+                    <th class="px-6 py-4">Identity</th>
+                    <th class="px-6 py-4">Status & Location</th>
+                    <th class="px-6 py-4">Digital Twin</th>
+                    <th class="px-6 py-4 text-right">Operations</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-surface-container">
+            <tbody class="divide-y divide-slate-50">
                 {% for item in student_data %}
                 {% set s = item.student %}
-                <tr class="hover:bg-surface-container-low transition-colors group">
-                    <!-- Identity (Avatar & ID) -->
-                    <td class="px-6 py-4 hidden sm:table-cell">
-                        <div class="w-10 h-10 rounded-full bg-primary-container text-white flex items-center justify-center font-bold shadow-inner">
-                            {{ s.name[0]|upper }}
+                <tr class="hover:bg-slate-50/50 transition-colors group">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-lg shadow-lg">
+                                {{ s.name[0]|upper }}
+                            </div>
+                            <div class="min-w-0">
+                                <h4 class="text-sm font-black text-slate-900 truncate">{{ s.name }}</h4>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ s.registration_number }}</p>
+                            </div>
                         </div>
                     </td>
                     
-                    <!-- Details -->
                     <td class="px-6 py-4">
-                        <div class="font-bold text-on-surface flex items-center gap-2">
-                            {{ s.name }}
-                        </div>
-                        <div class="flex items-center gap-2 mt-1">
-                            <span class="text-[10px] bg-surface-container-high px-2 py-0.5 rounded-full font-medium text-slate-500 tracking-wider">
-                                {{ s.registration_number }}
-                            </span>
-                            <span class="text-[10px] text-slate-400 font-medium">{{ s.department }}</span>
+                        <div class="flex flex-col gap-1.5">
+                            <div class="flex items-center gap-1.5">
+                                <span class="badge badge-present bg-emerald-50 text-emerald-600 text-[9px]">RM {{ s.room_number }}</span>
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{{ s.department }}</span>
+                            </div>
                         </div>
                     </td>
 
-                    <!-- Location -->
-                    <td class="px-6 py-4">
-                        <span class="inline-flex items-center gap-1 bg-green-50 text-green-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-green-100">
-                            <span class="material-symbols-outlined text-[12px]">meeting_room</span>
-                            Rm {{ s.room_number }}
-                        </span>
-                    </td>
-
-                    <!-- Biometrics -->
                     <td class="px-6 py-4">
                         {% if item.img_count >= 20 %}
-                        <div class="flex items-center gap-1.5 text-green-600">
-                            <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">cloud_done</span>
-                            <span class="text-[10px] font-bold uppercase tracking-wider">Processed</span>
+                        <div class="flex items-center gap-2 text-emerald-600">
+                            <span class="material-symbols-rounded text-sm">verified</span>
+                            <span class="text-[10px] font-black uppercase tracking-widest">CALIBRATED</span>
                         </div>
                         {% elif item.img_count > 0 %}
-                        <div class="flex items-center gap-1.5 text-on-tertiary-container">
-                            <span class="material-symbols-outlined text-sm">cloud_sync</span>
-                            <span class="text-[10px] font-bold uppercase tracking-wider">Partial ({{ item.img_count }})</span>
+                        <div class="flex items-center gap-2 text-amber-500">
+                            <span class="material-symbols-rounded text-sm">sync</span>
+                            <span class="text-[10px] font-black uppercase tracking-widest">PARTIAL ({{ item.img_count }})</span>
                         </div>
                         {% else %}
-                        <div class="flex items-center gap-1.5 text-error">
-                            <span class="material-symbols-outlined text-sm">cloud_off</span>
-                            <span class="text-[10px] font-bold uppercase tracking-wider">Missing Data</span>
+                        <div class="flex items-center gap-2 text-rose-500">
+                            <span class="material-symbols-rounded text-sm">error</span>
+                            <span class="text-[10px] font-black uppercase tracking-widest">DATA GAP</span>
                         </div>
                         {% endif %}
                     </td>
 
-                    <!-- Actions -->
                     <td class="px-6 py-4 text-right">
-                        <div class="flex items-center justify-end gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                            <a href="{{ url_for('view_student', reg_num=s.registration_number) }}" class="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="View Profile">
-                                <span class="material-symbols-outlined text-[18px]">person</span>
+                        <div class="flex items-center justify-end gap-1">
+                            <a href="{{ url_for('view_student', reg_num=s.registration_number) }}" class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Profile">
+                                <span class="material-symbols-rounded text-lg">person</span>
                             </a>
-                            <a href="{{ url_for('edit_student', reg_num=s.registration_number) }}" class="p-2 text-slate-400 hover:text-on-tertiary-container hover:bg-tertiary-fixed/40 rounded-lg transition-colors" title="Edit Student">
-                                <span class="material-symbols-outlined text-[18px]">edit</span>
+                            <a href="{{ url_for('edit_student', reg_num=s.registration_number) }}" class="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-all" title="Edit">
+                                <span class="material-symbols-rounded text-lg">edit</span>
                             </a>
-                            <a href="{{ url_for('capture_face', reg_num=s.registration_number) }}" class="p-2 text-slate-400 hover:text-on-primary-container hover:bg-primary-container/20 rounded-lg transition-colors" title="Face Enroll">
-                                <span class="material-symbols-outlined text-[18px]">face</span>
+                            <a href="{{ url_for('capture_face', reg_num=s.registration_number) }}" class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Enroll">
+                                <span class="material-symbols-rounded text-lg">face</span>
                             </a>
-                            
-                            <form method="POST" action="{{ url_for('delete_student', reg_num=s.registration_number) }}" class="inline" onsubmit="return confirm('Remove {{ s.name }} from directory?');">
-                                <button type="submit" class="p-2 text-slate-400 hover:text-error hover:bg-error-container/40 rounded-lg transition-colors" title="Expel">
-                                    <span class="material-symbols-outlined text-[18px]">person_remove</span>
+                            <form method="POST" action="{{ url_for('delete_student', reg_num=s.registration_number) }}" class="inline" onsubmit="return confirm('Remove resident?');">
+                                <button type="submit" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all" title="Expel">
+                                    <span class="material-symbols-rounded text-lg">person_remove</span>
                                 </button>
                             </form>
                         </div>
@@ -149,18 +136,13 @@
         </table>
     </div>
     {% else %}
-    <!-- Empty State -->
-    <div class="p-12 flex flex-col items-center justify-center text-center">
-        <div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-300 mb-4">
-            <span class="material-symbols-outlined text-3xl">search_off</span>
+    <div class="p-20 flex flex-col items-center justify-center text-center">
+        <div class="w-16 h-16 rounded-3xl bg-slate-50 flex items-center justify-center text-slate-200 mb-6">
+            <span class="material-symbols-rounded text-3xl">sentiment_very_dissatisfied</span>
         </div>
-        <h4 class="text-lg font-bold text-on-surface mb-1">No matches found</h4>
-        <p class="text-sm text-slate-500 mb-6 max-w-sm">{% if search %}We couldn't find any residents matching "{{ search }}".{% else %}The directory is currently empty.{% endif %}</p>
-        {% if search %}
-        <a href="{{ url_for('students') }}" class="text-primary font-bold text-sm hover:underline">Clear Search Filter</a>
-        {% else %}
-        <a href="{{ url_for('register_student') }}" class="text-primary font-bold text-sm bg-primary/10 px-4 py-2 rounded-lg hover:bg-primary/20 transition-colors">Start Registering</a>
-        {% endif %}
+        <h4 class="text-lg font-black text-slate-900 mb-1">Null Results</h4>
+        <p class="text-sm text-slate-500 mb-8 max-w-xs">The frequency you're searching for yielded no resident profiles.</p>
+        <a href="{{ url_for('students') }}" class="btn btn-outline px-8">Reset Directory</a>
     </div>
     {% endif %}
 </div>

@@ -5,7 +5,7 @@
 <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
     <div>
         <h1 class="text-3xl font-extrabold text-blue-900 tracking-tight flex items-center gap-2 mb-2">
-            <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">event_busy</span>
+            <span class="material-symbols-rounded text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">event_busy</span>
             Leave Management
         </h1>
         <p class="text-slate-500 font-medium mt-1">Record and approve resident absence durations.</p>
@@ -18,7 +18,7 @@
     <div class="lg:col-span-4">
         <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10 sticky top-24">
             <h3 class="font-bold text-blue-900 border-b border-surface-container pb-4 mb-6 flex items-center gap-2">
-                <span class="material-symbols-outlined text-sm">add_circle</span> Grant Leave
+                <span class="material-symbols-rounded text-sm">add_circle</span> Grant Leave
             </h3>
 
             <form method="POST" action="{{ url_for('add_leave') }}" class="space-y-6">
@@ -26,7 +26,7 @@
                 <div class="space-y-1">
                     <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Student ID *</label>
                     <div class="relative">
-                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">badge</span>
+                        <span class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">badge</span>
                         <input type="text" name="registration_number" list="studentList" class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 pl-9 pr-4 py-2.5 text-sm transition-colors" placeholder="e.g. 2023CS001" autocomplete="off" required>
                         <datalist id="studentList">
                             {% for s in students %}
@@ -52,7 +52,7 @@
                 <div class="space-y-1">
                     <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Leave Type *</label>
                     <div class="relative">
-                        <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">arrow_drop_down</span>
+                        <span class="material-symbols-rounded absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">arrow_drop_down</span>
                         <select name="leave_type" class="w-full appearance-none bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 pl-4 pr-9 py-2.5 text-sm transition-colors cursor-pointer">
                             <option value="Medical">Medical</option>
                             <option value="Personal">Personal</option>
@@ -84,7 +84,7 @@
 
                 <div class="pt-4 border-t border-surface-container">
                     <button type="submit" class="w-full bg-primary text-white font-bold py-3 rounded-xl shadow-md hover:bg-primary-container transition-colors flex justify-center items-center gap-2">
-                        <span class="material-symbols-outlined text-sm">save</span> Add Leave Record
+                        <span class="material-symbols-rounded text-sm">save</span> Add Leave Record
                     </button>
                 </div>
             </form>
@@ -96,7 +96,7 @@
         <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/10 overflow-hidden">
             <div class="px-6 py-4 flex justify-between items-center bg-surface border-b border-surface-container">
                 <h3 class="font-bold text-blue-900 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-sm">list_alt</span> Current & Pending Applications
+                    <span class="material-symbols-rounded text-sm">list_alt</span> Current & Pending Applications
                 </h3>
                 <span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">{{ leave_data|length }} Records</span>
             </div>
@@ -167,13 +167,13 @@
                                     {% if not leave.approved %}
                                     <form method="POST" action="{{ url_for('approve_leave', leave_id=leave.id) }}" class="inline">
                                         <button type="submit" class="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors" title="Approve Leave">
-                                            <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                                            <span class="material-symbols-rounded text-[18px]">check_circle</span>
                                         </button>
                                     </form>
                                     {% endif %}
                                     <form method="POST" action="{{ url_for('delete_leave', leave_id=leave.id) }}" class="inline" onsubmit="return confirm('Silently revoke/delete this leave record?');">
                                         <button type="submit" class="p-2 text-error hover:bg-error-container/50 rounded-lg transition-colors" title="Delete Leave">
-                                            <span class="material-symbols-outlined text-[18px]">delete</span>
+                                            <span class="material-symbols-rounded text-[18px]">delete</span>
                                         </button>
                                     </form>
                                 </div>
@@ -187,7 +187,7 @@
             {% else %}
             <div class="p-12 flex flex-col items-center justify-center text-center">
                 <div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-300 mb-4">
-                    <span class="material-symbols-outlined text-4xl">event_available</span>
+                    <span class="material-symbols-rounded text-4xl">event_available</span>
                 </div>
                 <h4 class="text-lg font-bold text-on-surface mb-1">No Leave Records</h4>
                 <p class="text-sm text-slate-500">There are no active or pending leave applications.</p>
