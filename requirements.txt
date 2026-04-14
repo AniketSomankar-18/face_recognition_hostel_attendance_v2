@@ -22,8 +22,5 @@ reportlab==4.2.2
 Pillow==10.4.0
 opencv-python-headless==4.10.0.84
 
-# Optional: Face Recognition (requires CMake + dlib on host)
-# Install manually on Raspberry Pi: pip install face-recognition dlib
-# These are NOT installed on Render (cloud server) — the app runs in mock mode
-# face-recognition==1.3.0
-# dlib==19.24.2
+# Optional: Face Recognition is handled by Raspberry Pi client
+# Cloud server runs in mock mode to save memory
