@@ -1,179 +1,196 @@
 {% extends "base.html" %}
-{% block title %}Leave Management – Hostel Attendance{% endblock %}
+{% block title %}Leave Management – Hostel Excellence{% endblock %}
 
 {% block content %}
-<div class="page-header">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
     <div>
-        <h1 class="page-title"><i class="fas fa-calendar-minus"></i> Leave Management</h1>
-        <p class="page-subtitle">Manage student leave requests</p>
+        <h1 class="text-3xl font-extrabold text-blue-900 tracking-tight flex items-center gap-2 mb-2">
+            <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">event_busy</span>
+            Leave Management
+        </h1>
+        <p class="text-slate-500 font-medium mt-1">Record and approve resident absence durations.</p>
     </div>
 </div>
 
-<div class="leave-layout">
-    <!-- Add Leave Form -->
-    <div class="card">
-        <div class="card-header">
-            <h3><i class="fas fa-plus-circle"></i> Add Leave</h3>
-        </div>
-        <div class="card-body">
-            <form method="POST" action="{{ url_for('add_leave') }}" class="leave-form">
-                <div class="form-group">
-                    <label class="form-label required">Student Registration Number</label>
-                    <input type="text" name="registration_number"
-                           class="form-control" placeholder="e.g. 2023CS001"
-                           list="studentList" autocomplete="off" required>
-                    <datalist id="studentList">
-                        {% for s in students %}
-                        <option value="{{ s.registration_number }}">{{ s.name }} – {{ s.room_number }}</option>
-                        {% endfor %}
-                    </datalist>
-                </div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    
+    <!-- Left Column: Add Leave Form -->
+    <div class="lg:col-span-4">
+        <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10 sticky top-24">
+            <h3 class="font-bold text-blue-900 border-b border-surface-container pb-4 mb-6 flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">add_circle</span> Grant Leave
+            </h3>
 
-                <div class="form-grid-2">
-                    <div class="form-group">
-                        <label class="form-label required">From Date</label>
-                        <input type="date" name="from_date" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label required">To Date</label>
-                        <input type="date" name="to_date" class="form-control" required>
+            <form method="POST" action="{{ url_for('add_leave') }}" class="space-y-6">
+                <!-- Reg Number -->
+                <div class="space-y-1">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Student ID *</label>
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">badge</span>
+                        <input type="text" name="registration_number" list="studentList" class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 pl-9 pr-4 py-2.5 text-sm transition-colors" placeholder="e.g. 2023CS001" autocomplete="off" required>
+                        <datalist id="studentList">
+                            {% for s in students %}
+                            <option value="{{ s.registration_number }}">{{ s.name }} – Rm {{ s.room_number }}</option>
+                            {% endfor %}
+                        </datalist>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label required">Leave Type</label>
-                    <select name="leave_type" class="form-control">
-                        <option value="Medical">Medical</option>
-                        <option value="Personal">Personal</option>
-                        <option value="Emergency">Emergency</option>
-                        <option value="Festival">Festival</option>
-                        <option value="Other">Other</option>
-                    </select>
+                <!-- Dates -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">From *</label>
+                        <input type="date" name="from_date" class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 px-3 py-2 text-sm transition-colors text-slate-700" required>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">To *</label>
+                        <input type="date" name="to_date" class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 px-3 py-2 text-sm transition-colors text-slate-700" required>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label required">Reason</label>
-                    <textarea name="reason" class="form-control" rows="3"
-                              placeholder="Enter reason for leave..." required></textarea>
+                <!-- Type -->
+                <div class="space-y-1">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Leave Type *</label>
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">arrow_drop_down</span>
+                        <select name="leave_type" class="w-full appearance-none bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 pl-4 pr-9 py-2.5 text-sm transition-colors cursor-pointer">
+                            <option value="Medical">Medical</option>
+                            <option value="Personal">Personal</option>
+                            <option value="Emergency">Emergency</option>
+                            <option value="Festival">Festival</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="approve" value="on">
-                        <span class="checkbox-custom"></span>
-                        Approve immediately
-                    </label>
+                <!-- Reason -->
+                <div class="space-y-1">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Reason *</label>
+                    <textarea name="reason" rows="3" class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 p-3 text-sm transition-colors resize-none" placeholder="Provide specific reason..." required></textarea>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-full">
-                    <i class="fas fa-save"></i> Add Leave
-                </button>
+                <!-- Auto Approve -->
+                <div class="flex items-center gap-2 pt-2">
+                    <div class="relative flex items-start">
+                        <div class="flex items-center h-5">
+                            <input type="checkbox" name="approve" value="on" class="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary/50 bg-surface-container-low cursor-pointer">
+                        </div>
+                        <div class="ml-2 text-sm">
+                            <label class="font-bold text-slate-700 cursor-pointer">Approve immediately</label>
+                            <p class="text-[10px] text-slate-500 mt-0.5">Bypass pending state</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-surface-container">
+                    <button type="submit" class="w-full bg-primary text-white font-bold py-3 rounded-xl shadow-md hover:bg-primary-container transition-colors flex justify-center items-center gap-2">
+                        <span class="material-symbols-outlined text-sm">save</span> Add Leave Record
+                    </button>
+                </div>
             </form>
         </div>
     </div>
 
-    <!-- Leave Records -->
-    <div class="card" style="flex:2">
-        <div class="card-header">
-            <h3><i class="fas fa-list"></i> Leave Records
-                <span class="badge badge-primary">{{ leave_data|length }}</span>
-            </h3>
-        </div>
-        <div class="card-body p-0">
+    <!-- Right Column: Leave Records Table -->
+    <div class="lg:col-span-8">
+        <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/10 overflow-hidden">
+            <div class="px-6 py-4 flex justify-between items-center bg-surface border-b border-surface-container">
+                <h3 class="font-bold text-blue-900 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">list_alt</span> Current & Pending Applications
+                </h3>
+                <span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">{{ leave_data|length }} Records</span>
+            </div>
+
             {% if leave_data %}
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-surface-container-low text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                         <tr>
-                            <th>Student</th>
-                            <th>Reg. No</th>
-                            <th>From</th>
-                            <th>To</th>
-                            <th>Days</th>
-                            <th>Type</th>
-                            <th>Reason</th>
-                            <th>Status</th>
-                            <th>Actions</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Resident</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Duration</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Status</th>
+                            <th class="px-6 py-3 whitespace-nowrap text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="divide-y divide-surface-container">
                         {% for item in leave_data %}
                         {% set leave = item.leave %}
                         {% set s = item.student %}
-                        <tr>
-                            <td>
+                        <tr class="hover:bg-surface-container-low transition-colors group">
+                            
+                            <td class="px-6 py-4">
                                 {% if s %}
-                                <div class="student-cell-mini">
-                                    <div class="mini-avatar">{{ s.name[0] }}</div>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-primary-container text-white flex justify-center items-center font-bold text-xs">
+                                        {{ s.name[0]|upper }}
+                                    </div>
                                     <div>
-                                        <div class="student-name">{{ s.name }}</div>
-                                        <div class="student-room">Room {{ s.room_number }}</div>
+                                        <div class="font-bold text-on-surface text-sm">{{ s.name }}</div>
+                                        <div class="text-[10px] text-slate-500 font-medium">Rm {{ s.room_number }} • {{ leave.registration_number }}</div>
                                     </div>
                                 </div>
-                                {% else %}N/A{% endif %}
-                            </td>
-                            <td><span class="reg-badge">{{ leave.registration_number }}</span></td>
-                            <td>{{ leave.from_date.strftime('%d %b %Y') }}</td>
-                            <td>{{ leave.to_date.strftime('%d %b %Y') }}</td>
-                            <td>
-                                {% set days = (leave.to_date - leave.from_date).days + 1 %}
-                                <span class="badge badge-info">{{ days }}d</span>
-                            </td>
-                            <td>
-                                <span class="leave-type-badge lt-{{ leave.leave_type.lower() }}">
-                                    {{ leave.leave_type }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="reason-text" title="{{ leave.reason }}">
-                                    {{ leave.reason[:40] }}{% if leave.reason|length > 40 %}...{% endif %}
-                                </span>
-                            </td>
-                            <td>
-                                {% if leave.approved %}
-                                <span class="badge badge-success">
-                                    <i class="fas fa-check"></i> Approved
-                                </span>
-                                <div class="approved-by">by {{ leave.approved_by }}</div>
                                 {% else %}
-                                <span class="badge badge-warning">
-                                    <i class="fas fa-clock"></i> Pending
+                                <div class="font-bold text-on-surface text-sm">Unknown Student</div>
+                                <div class="text-[10px] text-slate-500 font-medium">{{ leave.registration_number }}</div>
+                                {% endif %}
+                                <div class="mt-2 text-[11px]">
+                                    <span class="font-bold text-secondary">{{ leave.leave_type }}:</span> 
+                                    <span class="text-slate-500 truncate inline-block max-w-[200px] align-bottom" title="{{ leave.reason }}">{{ leave.reason }}</span>
+                                </div>
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <div class="text-sm font-medium text-slate-700">
+                                    {{ leave.from_date.strftime('%d %b') }} - {{ leave.to_date.strftime('%d %b %Y') }}
+                                </div>
+                                {% set days = (leave.to_date - leave.from_date).days + 1 %}
+                                <div class="mt-1 inline-flex py-0.5 px-2 bg-blue-50 text-blue-700 rounded text-[10px] font-bold border border-blue-100">
+                                    {{ days }} Day{% if days != 1 %}s{% endif %}
+                                </div>
+                            </td>
+
+                            <td class="px-6 py-4">
+                                {% if leave.approved %}
+                                <span class="inline-flex py-1 px-2.5 rounded-lg text-[10px] font-bold bg-green-100 text-green-700 border border-green-200">
+                                    Approved
+                                </span>
+                                <div class="text-[9px] text-slate-400 mt-1">by {{ leave.approved_by }}</div>
+                                {% else %}
+                                <span class="inline-flex py-1 px-2.5 rounded-lg text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                                    Pending
                                 </span>
                                 {% endif %}
                             </td>
-                            <td>
-                                <div class="action-buttons">
+
+                            <td class="px-6 py-4 text-right align-top">
+                                <div class="flex items-center justify-end gap-1">
                                     {% if not leave.approved %}
-                                    <form method="POST"
-                                          action="{{ url_for('approve_leave', leave_id=leave.id) }}"
-                                          style="display:inline">
-                                        <button type="submit" class="btn btn-xs btn-success"
-                                                title="Approve">
-                                            <i class="fas fa-check"></i>
+                                    <form method="POST" action="{{ url_for('approve_leave', leave_id=leave.id) }}" class="inline">
+                                        <button type="submit" class="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors" title="Approve Leave">
+                                            <span class="material-symbols-outlined text-[18px]">check_circle</span>
                                         </button>
                                     </form>
                                     {% endif %}
-                                    <form method="POST"
-                                          action="{{ url_for('delete_leave', leave_id=leave.id) }}"
-                                          style="display:inline"
-                                          onsubmit="return confirm('Delete this leave record?')">
-                                        <button type="submit" class="btn btn-xs btn-danger"
-                                                title="Delete">
-                                            <i class="fas fa-trash"></i>
+                                    <form method="POST" action="{{ url_for('delete_leave', leave_id=leave.id) }}" class="inline" onsubmit="return confirm('Silently revoke/delete this leave record?');">
+                                        <button type="submit" class="p-2 text-error hover:bg-error-container/50 rounded-lg transition-colors" title="Delete Leave">
+                                            <span class="material-symbols-outlined text-[18px]">delete</span>
                                         </button>
                                     </form>
                                 </div>
                             </td>
+
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
             {% else %}
-            <div class="empty-state">
-                <i class="fas fa-calendar-minus"></i>
-                <h3>No Leave Records</h3>
-                <p>No leave applications found. Add a leave using the form.</p>
+            <div class="p-12 flex flex-col items-center justify-center text-center">
+                <div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-300 mb-4">
+                    <span class="material-symbols-outlined text-4xl">event_available</span>
+                </div>
+                <h4 class="text-lg font-bold text-on-surface mb-1">No Leave Records</h4>
+                <p class="text-sm text-slate-500">There are no active or pending leave applications.</p>
             </div>
             {% endif %}
         </div>

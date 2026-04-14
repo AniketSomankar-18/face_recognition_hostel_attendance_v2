@@ -1,143 +1,113 @@
 {% extends "base.html" %}
-{% block title %}Capture Face – {{ student.name }}{% endblock %}
+{% block title %}Face Enrollment – Hostel Excellence{% endblock %}
 
 {% block content %}
-<div class="page-header">
+<style>
+    .face-guide {
+        border: 2px dashed rgba(255, 255, 255, 0.5);
+        border-radius: 50%;
+        position: absolute;
+        width: 250px;
+        height: 300px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+        transition: border-color 0.3s;
+    }
+    .face-guide.capturing {
+        border-color: #00236f;
+        background: rgba(0, 35, 111, 0.2);
+    }
+</style>
+
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
     <div>
-        <h1 class="page-title"><i class="fas fa-camera"></i> Face Capture</h1>
-        <p class="page-subtitle">Capture face images for {{ student.name }}</p>
+        <h1 class="text-3xl font-extrabold text-on-surface tracking-tight mb-2">Face Enrollment</h1>
+        <p class="text-on-surface-variant font-medium">Capturing biometric data for <strong class="text-primary">{{ student.name }}</strong> ({{ student.registration_number }})</p>
     </div>
-    <div class="header-actions">
-        <a href="{{ url_for('students') }}" class="btn btn-outline">
-            <i class="fas fa-arrow-left"></i> Back
-        </a>
+    <div class="bg-surface-container px-4 py-2 rounded-xl flex items-center gap-3 border border-outline-variant/10">
+        <span class="material-symbols-outlined text-primary">psychology</span>
+        <div>
+            <div class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Target Captures</div>
+            <div class="font-black text-lg text-primary leading-tight"><span id="progressText">0</span> / 20</div>
+        </div>
     </div>
 </div>
 
-<div class="capture-layout">
-    <!-- Camera Panel -->
-    <div class="card camera-card">
-        <div class="card-header">
-            <h3><i class="fas fa-video"></i> Live Camera</h3>
-            <span class="badge badge-info">{{ student.registration_number }}</span>
-        </div>
-        <div class="card-body">
-            <div class="camera-container">
-                <video id="videoFeed" autoplay playsinline class="camera-video"></video>
-                <canvas id="canvas" style="display:none"></canvas>
-                <div class="camera-overlay">
-                    <div class="face-frame">
-                        <span class="fc tl"></span>
-                        <span class="fc tr"></span>
-                        <span class="fc bl"></span>
-                        <span class="fc br"></span>
-                    </div>
-                    <div class="camera-status" id="cameraStatus">
-                        <i class="fas fa-circle-notch fa-spin"></i> Initializing camera...
-                    </div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    
+    <!-- Left: Camera Feed -->
+    <div class="lg:col-span-8">
+        <div class="bg-surface-container-lowest p-2 rounded-2xl shadow-sm border border-outline-variant/10">
+            <div class="relative bg-black rounded-xl overflow-hidden aspect-video flex flex-col items-center justify-center min-h-[400px]">
+                <video id="videoFeed" class="absolute inset-0 w-full h-full object-cover" autoplay playsinline></video>
+                <div id="guideOverlay" class="face-guide z-10 w-[200px] h-[250px] md:w-[250px] md:h-[300px]"></div>
+                
+                <div class="absolute bottom-6 left-0 right-0 flex justify-center z-20">
+                    <button id="startCaptureBtn" class="bg-primary text-white px-8 py-3 rounded-full font-bold shadow-lg flex items-center gap-2 hover:bg-primary-container transition-all transform hover:scale-105">
+                        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">camera</span>
+                        Start Auto-Capture
+                    </button>
+                    
+                    <button class="hidden bg-slate-800/80 backdrop-blur text-white px-6 py-2 rounded-full font-bold shadow-lg flex items-center gap-2">
+                        <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                        Capturing... Please hold still
+                    </button>
                 </div>
             </div>
-
-            <!-- Progress -->
-            <div class="capture-progress">
-                <div class="progress-header">
-                    <span>Images Captured</span>
-                    <span id="captureCount">{{ img_count }}</span>/<span>{{ required }}</span>
+            
+            <div class="p-4 bg-surface-container-low rounded-xl mt-2 border border-outline-variant/10">
+                <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden mb-2">
+                    <div id="progressBar" class="bg-primary h-full transition-all duration-300" style="width: 0%"></div>
                 </div>
-                <div class="progress-bar-wrap">
-                    <div class="progress-bar bar-present" id="captureBar"
-                         style="width: {{ (img_count / required * 100) | int }}%">
-                    </div>
-                </div>
-                <div class="progress-pct" id="capturePct">
-                    {{ (img_count / required * 100) | int }}%
-                </div>
-            </div>
-
-            <!-- Controls -->
-            <div class="capture-controls">
-                <button id="startBtn" class="btn btn-primary btn-lg" onclick="startCapture()">
-                    <i class="fas fa-play"></i> Start Auto Capture
-                </button>
-                <button id="stopBtn" class="btn btn-danger btn-lg" style="display:none" onclick="stopCapture()">
-                    <i class="fas fa-stop"></i> Stop
-                </button>
-                <button id="manualBtn" class="btn btn-outline btn-lg" onclick="captureOne()">
-                    <i class="fas fa-camera"></i> Capture One
-                </button>
-            </div>
-
-            <!-- Status Log -->
-            <div class="capture-log" id="captureLog">
-                <div class="log-entry log-info">
-                    <i class="fas fa-info-circle"></i> Ready to capture face images for {{ student.name }}.
-                    Position face in the frame.
-                </div>
+                <p class="text-[11px] text-center text-slate-500 font-medium" id="statusMessage">Slowly move your head slightly while capturing.</p>
             </div>
         </div>
     </div>
 
-    <!-- Student Info Panel -->
-    <div class="side-panel">
-        <div class="card">
-            <div class="card-header">
-                <h3><i class="fas fa-user"></i> Student Info</h3>
-            </div>
-            <div class="card-body">
-                <div class="student-profile">
-                    <div class="profile-avatar large">{{ student.name[0].upper() }}</div>
-                    <h3 class="profile-name">{{ student.name }}</h3>
-                    <span class="reg-badge">{{ student.registration_number }}</span>
-                </div>
-                <div class="profile-details">
-                    <div class="detail-row">
-                        <span class="detail-label"><i class="fas fa-door-open"></i> Room</span>
-                        <span class="detail-value">{{ student.room_number }}</span>
+    <!-- Right: Instructions & Warnings -->
+    <div class="lg:col-span-4 space-y-6">
+        <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
+            <h3 class="font-bold text-blue-900 mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">lightbulb</span> Encoding Guidelines
+            </h3>
+            
+            <ul class="space-y-4">
+                <li class="flex items-start gap-3">
+                    <div class="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                        <span class="material-symbols-outlined text-[14px]">face</span>
                     </div>
-                    <div class="detail-row">
-                        <span class="detail-label"><i class="fas fa-graduation-cap"></i> Dept</span>
-                        <span class="detail-value">{{ student.department }}</span>
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-700">Center Face</h4>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Keep your face within the dashed oval boundary.</p>
                     </div>
-                    <div class="detail-row">
-                        <span class="detail-label"><i class="fas fa-phone"></i> Phone</span>
-                        <span class="detail-value">{{ student.phone }}</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <div class="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                        <span class="material-symbols-outlined text-[14px]">360</span>
                     </div>
-                </div>
-            </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-700">Slight Movements</h4>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Slowly tilt your head up, down, left, and right during the capture process.</p>
+                    </div>
+                </li>
+                <li class="flex items-start gap-3">
+                    <div class="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                        <span class="material-symbols-outlined text-[14px]">light_mode</span>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-700">Good Lighting</h4>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Ensure your face is well-lit and not shadowed.</p>
+                    </div>
+                </li>
+            </ul>
         </div>
-
-        <div class="card">
-            <div class="card-header">
-                <h3><i class="fas fa-lightbulb"></i> Tips</h3>
-            </div>
-            <div class="card-body">
-                <ul class="tips-list">
-                    <li><i class="fas fa-sun"></i> Ensure good lighting</li>
-                    <li><i class="fas fa-eye"></i> Look directly at camera</li>
-                    <li><i class="fas fa-head-side-mask"></i> Remove glasses if possible</li>
-                    <li><i class="fas fa-arrows-alt"></i> Slightly move head for variety</li>
-                    <li><i class="fas fa-smile"></i> Try different expressions</li>
-                    <li><i class="fas fa-images"></i> Need 20 clear images</li>
-                </ul>
-            </div>
-        </div>
-
-        <!-- Complete Button -->
-        <div id="completeSection" style="display: {% if img_count >= required %}block{% else %}none{% endif %}">
-            <div class="card card-success">
-                <div class="card-body text-center">
-                    <i class="fas fa-check-circle success-icon"></i>
-                    <h3>Face Capture Complete!</h3>
-                    <p>All {{ required }} images captured successfully.</p>
-                    <a href="{{ url_for('students') }}" class="btn btn-success btn-full" style="margin-bottom:0.5rem">
-                        <i class="fas fa-users"></i> Back to Students
-                    </a>
-                    <a href="{{ url_for('train_model') }}" class="btn btn-primary btn-full"
-                       onclick="return confirm('Train model now?')">
-                        <i class="fas fa-brain"></i> Train Model
-                    </a>
-                </div>
-            </div>
+        
+        <div class="bg-error-container/30 px-6 py-4 rounded-xl border border-error/20 flex gap-3">
+            <span class="material-symbols-outlined text-error mt-0.5">warning</span>
+            <p class="text-[11px] text-on-surface-variant font-medium">Removing glasses or masks is recommended for the most accurate facial encoding sequence.</p>
         </div>
     </div>
 </div>
@@ -145,127 +115,105 @@
 
 {% block scripts %}
 <script>
-const REG_NUM = "{{ student.registration_number }}";
-const REQUIRED = {{ required }};
-let currentCount = {{ img_count }};
-let captureInterval = null;
-let stream = null;
+    let videoStream = null;
+    let imagesCaptured = 0;
+    const requiredImages = 20;
 
-// Start webcam
-async function initCamera() {
-    try {
-        stream = await navigator.mediaDevices.getUserMedia({
-            video: { width: 640, height: 480, facingMode: 'user' }
-        });
-        document.getElementById('videoFeed').srcObject = stream;
-        document.getElementById('cameraStatus').innerHTML =
-            '<i class="fas fa-circle text-success"></i> Camera Ready';
-        document.getElementById('cameraStatus').className = 'camera-status status-ready';
-    } catch (err) {
-        document.getElementById('cameraStatus').innerHTML =
-            '<i class="fas fa-exclamation-triangle"></i> Camera Error: ' + err.message;
-        addLog('Camera access denied: ' + err.message, 'error');
+    async function setupCamera() {
+        try {
+            videoStream = await navigator.mediaDevices.getUserMedia({ 
+                video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" } 
+            });
+            document.getElementById('videoFeed').srcObject = videoStream;
+        } catch (err) {
+            document.getElementById('statusMessage').textContent = 'Error accessing camera: ' + err.message;
+            document.getElementById('statusMessage').className = 'text-[11px] text-center text-error font-medium';
+        }
     }
-}
 
-function captureFrame() {
-    const video = document.getElementById('videoFeed');
-    const canvas = document.getElementById('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0);
-    return canvas.toDataURL('image/jpeg', 0.9);
-}
+    async function captureImage() {
+        const video = document.getElementById('videoFeed');
+        if (!video.videoWidth) return null;
 
-async function captureOne() {
-    if (currentCount >= REQUIRED) {
-        addLog('All images already captured!', 'success');
-        return;
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL('image/jpeg', 0.9);
     }
-    const imageData = captureFrame();
-    await sendFrame(imageData);
-}
 
-async function sendFrame(imageData) {
-    try {
-        const resp = await fetch('/api/capture_frame', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reg_num: REG_NUM, image: imageData })
-        });
-        const data = await resp.json();
+    document.getElementById('startCaptureBtn').addEventListener('click', async function() {
+        const btn = this;
+        const guide = document.getElementById('guideOverlay');
+        const progressText = document.getElementById('progressText');
+        const progressBar = document.getElementById('progressBar');
+        const statusMsg = document.getElementById('statusMessage');
 
-        if (data.success) {
-            currentCount = data.count;
-            updateProgress(currentCount);
-            addLog(`Image ${currentCount}/${REQUIRED} captured`, 'success');
+        btn.style.display = 'none';
+        btn.nextElementSibling.classList.remove('hidden'); // Show capturing indicator
+        guide.classList.add('capturing');
+        statusMsg.textContent = 'Hold still... initializing capture sequence.';
 
-            if (data.complete) {
-                stopCapture();
-                document.getElementById('completeSection').style.display = 'block';
-                addLog('All face images captured! Model training recommended.', 'success');
+        const regNum = '{{ student.registration_number }}';
+
+        for (let i = 0; i < requiredImages; i++) {
+            statusMsg.textContent = `Capturing frame ${i+1} of ${requiredImages}...`;
+            const imageData = await captureImage();
+            
+            if (imageData) {
+                try {
+                    const response = await fetch(`/capture_face/${regNum}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image: imageData })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        imagesCaptured++;
+                        progressText.textContent = imagesCaptured;
+                        progressBar.style.width = `${(imagesCaptured / requiredImages) * 100}%`;
+                    } else {
+                        console.error('Failed to save frame', data.error);
+                        // Optional: show a flash if it fails to find a face
+                    }
+                } catch (err) {
+                    console.error('Upload Error', err);
+                }
             }
+            
+            // Adjust delay as needed
+            await new Promise(r => setTimeout(r, 600));
+        }
+
+        guide.classList.remove('capturing');
+        
+        if (imagesCaptured >= requiredImages * 0.5) { // Assuming success if at least half worked, or strictly require 20? 
+            statusMsg.textContent = 'Capture complete. Redirecting...';
+            statusMsg.className = 'text-[11px] text-center text-green-600 font-bold';
+            setTimeout(() => {
+                window.location.href = "{{ url_for('students') }}";
+            }, 1000);
         } else {
-            addLog(data.message, 'warning');
+            statusMsg.textContent = `Only saved ${imagesCaptured} valid frames. Please refresh and try again.`;
+            statusMsg.className = 'text-[11px] text-center text-error font-medium';
+            btn.nextElementSibling.classList.add('hidden');
+            btn.style.display = 'flex';
+            btn.textContent = 'Retry Capture';
+            imagesCaptured = 0;
+            progressText.textContent = '0';
+            progressBar.style.width = '0%';
         }
-    } catch (err) {
-        addLog('Error: ' + err.message, 'error');
-    }
-}
+    });
 
-function startCapture() {
-    if (captureInterval) return;
-    document.getElementById('startBtn').style.display = 'none';
-    document.getElementById('stopBtn').style.display = 'inline-flex';
-    addLog('Auto capture started. Capturing every 1.5 seconds...', 'info');
-
-    captureInterval = setInterval(async () => {
-        if (currentCount >= REQUIRED) {
-            stopCapture();
-            return;
+    window.addEventListener('beforeunload', () => {
+        if (videoStream) {
+            videoStream.getTracks().forEach(t => t.stop());
         }
-        const imageData = captureFrame();
-        await sendFrame(imageData);
-    }, 1500);
-}
+    });
 
-function stopCapture() {
-    if (captureInterval) {
-        clearInterval(captureInterval);
-        captureInterval = null;
-    }
-    document.getElementById('startBtn').style.display = 'inline-flex';
-    document.getElementById('stopBtn').style.display = 'none';
-    addLog('Capture stopped.', 'info');
-}
-
-function updateProgress(count) {
-    const pct = Math.round(count / REQUIRED * 100);
-    document.getElementById('captureCount').textContent = count;
-    document.getElementById('captureBar').style.width = pct + '%';
-    document.getElementById('capturePct').textContent = pct + '%';
-}
-
-function addLog(message, type = 'info') {
-    const log = document.getElementById('captureLog');
-    const icons = {
-        success: 'fa-check-circle',
-        error: 'fa-times-circle',
-        warning: 'fa-exclamation-triangle',
-        info: 'fa-info-circle'
-    };
-    const entry = document.createElement('div');
-    entry.className = `log-entry log-${type}`;
-    entry.innerHTML = `<i class="fas ${icons[type]}"></i> ${message}`;
-    log.insertBefore(entry, log.firstChild);
-    if (log.children.length > 10) log.removeChild(log.lastChild);
-}
-
-// Initialize on load
-window.addEventListener('load', initCamera);
-window.addEventListener('beforeunload', () => {
-    if (stream) stream.getTracks().forEach(t => t.stop());
-});
+    // Initialize
+    setupCamera();
 </script>
 {% endblock %}

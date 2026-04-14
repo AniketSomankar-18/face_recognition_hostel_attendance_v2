@@ -1,221 +1,306 @@
 {% extends "base.html" %}
-{% block title %}Dashboard – SGGS Hostel Attendance{% endblock %}
+{% block title %}Dashboard – Hostel Excellence{% endblock %}
 
 {% block content %}
-<div class="page-header">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
     <div>
-        <h1 class="page-title"><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
-        <p class="page-subtitle">{{ summary.day }}, {{ summary.date }}</p>
+        <h3 class="text-3xl font-extrabold text-on-surface tracking-tight">Main Dashboard</h3>
+        <p class="text-on-surface-variant mt-1 font-medium">{{ summary.day }}, {{ summary.date }}</p>
     </div>
-    <div class="header-actions">
-        <a href="{{ url_for('attendance') }}" class="btn btn-primary">
-            <i class="fas fa-camera"></i> Start Recognition
-        </a>
+    <div class="flex items-center gap-3">
+        {% if model_trained %}
+        <span class="flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-700 text-xs font-bold rounded-lg">
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+            Model Ready
+        </span>
+        {% else %}
+        <span class="flex items-center gap-2 px-3 py-1.5 bg-error-container text-on-error-container text-xs font-bold rounded-lg">
+            <span class="material-symbols-outlined text-sm">error</span>
+            Model Not Trained
+        </span>
+        {% endif %}
+    </div>
+</div>
+
+<!-- KPI Stats Row -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- Present -->
+    <div class="bg-surface-container-lowest p-6 rounded-xl border-t-4 border-green-500 shadow-sm flex flex-col">
+        <div class="flex justify-between items-start mb-4">
+            <span class="material-symbols-outlined text-green-600 bg-green-50 p-2 rounded-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+            <span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">{{ summary.percentage }}%</span>
+        </div>
+        <p class="text-on-surface-variant text-sm font-semibold uppercase tracking-wider">Present</p>
+        <h4 class="text-3xl font-black text-on-surface mt-1">{{ summary.present }}</h4>
+    </div>
+    <!-- Absent -->
+    <div class="bg-surface-container-lowest p-6 rounded-xl border-t-4 border-error shadow-sm flex flex-col">
+        <div class="flex justify-between items-start mb-4">
+            <span class="material-symbols-outlined text-error bg-error-container/20 p-2 rounded-lg" style="font-variation-settings: 'FILL' 1;">cancel</span>
+        </div>
+        <p class="text-on-surface-variant text-sm font-semibold uppercase tracking-wider">Absent</p>
+        <h4 class="text-3xl font-black text-on-surface mt-1">{{ summary.absent }}</h4>
+    </div>
+    <!-- Late -->
+    <div class="bg-surface-container-lowest p-6 rounded-xl border-t-4 border-on-tertiary-container shadow-sm flex flex-col">
+        <div class="flex justify-between items-start mb-4">
+            <span class="material-symbols-outlined text-on-tertiary-container bg-tertiary-fixed/30 p-2 rounded-lg" style="font-variation-settings: 'FILL' 1;">schedule</span>
+        </div>
+        <p class="text-on-surface-variant text-sm font-semibold uppercase tracking-wider">Late</p>
+        <h4 class="text-3xl font-black text-on-surface mt-1">{{ summary.late }}</h4>
+    </div>
+    <!-- Leave -->
+    <div class="bg-surface-container-lowest p-6 rounded-xl border-t-4 border-primary shadow-sm flex flex-col">
+        <div class="flex justify-between items-start mb-4">
+            <span class="material-symbols-outlined text-primary bg-primary-fixed/30 p-2 rounded-lg" style="font-variation-settings: 'FILL' 1;">event_note</span>
+        </div>
+        <p class="text-on-surface-variant text-sm font-semibold uppercase tracking-wider">On Leave</p>
+        <h4 class="text-3xl font-black text-on-surface mt-1">{{ summary.leave }}</h4>
     </div>
 </div>
 
-<!-- Hostel Buildings Navigation -->
-<div class="hostel-grid">
-    {% for b in buildings %}
-    <a href="{{ url_for('building_view', name=b.id) }}" class="building-card {{ b.id }}">
-        <div class="building-img">
-            <i class="fas fa-hotel"></i>
+<!-- Main Layout: Bento Grid Style -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <!-- Left Column: Hostel Occupancy and Trends -->
+    <div class="lg:col-span-8 space-y-8">
+        
+        <div class="flex items-center justify-between">
+            <h4 class="text-xl font-bold text-primary flex items-center gap-2">
+                <span class="w-1 h-6 bg-primary rounded-full"></span>
+                Hostel Occupancy
+            </h4>
         </div>
-        <div class="building-content">
-            <span class="building-name">{{ b.name }} Hostel</span>
-            <div class="attendance-progress">
-                <div class="progress-label">
-                    <span>Attendance Status</span>
-                    <span class="progress-count">{{ b.pct }}%</span>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {% for b in buildings %}
+            <a href="{{ url_for('building_view', name=b.id) }}" class="block bg-surface-container-lowest p-8 rounded-xl shadow-sm border border-outline-variant/10 relative overflow-hidden group hover:border-primary/30 transition-colors">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-slate-50 -mr-16 -mt-16 rounded-full transition-transform group-hover:scale-110"></div>
+                <div class="relative z-10">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <h5 class="text-2xl font-extrabold text-blue-900">{{ b.name }} Hostel</h5>
+                            <p class="text-sm text-slate-500 font-medium">Campus Sector</p>
+                        </div>
+                        <span class="bg-green-100 text-green-700 text-xs font-black px-3 py-1 rounded-full uppercase tracking-widest">Active</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-8">
+                        <div>
+                            <p class="text-xs text-slate-400 uppercase font-bold tracking-tighter">Total Students</p>
+                            <p class="text-xl font-black text-slate-800">{{ b.total }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-400 uppercase font-bold tracking-tighter">Present Now</p>
+                            <p class="text-xl font-black text-green-600">{{ b.present }}</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center text-sm font-bold">
+                            <span class="text-slate-600">Daily Attendance</span>
+                            <span class="text-green-600">{{ b.pct }}%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                            <div class="bg-green-500 h-full rounded-full transition-all duration-1000" style="width: {{ b.pct }}%"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="progress-bar-wrap">
-                    <div class="progress-bar" style="width: {{ b.pct }}%; background: var(--accent);"></div>
+            </a>
+            {% endfor %}
+        </div>
+
+        <!-- Trend Chart Area -->
+        <div class="bg-surface-container-lowest p-8 rounded-xl shadow-sm border border-outline-variant/10">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h4 class="text-lg font-bold text-blue-900">Attendance Trends</h4>
+                    <p class="text-sm text-slate-500">Last 30 Days (Campus-wide)</p>
                 </div>
             </div>
-            <div class="building-stats">
-                <div class="b-stat">
-                    <span class="b-val">{{ b.total }}</span>
-                    <span class="b-label">Total</span>
-                </div>
-                <div class="b-stat">
-                    <span class="b-val">{{ b.present }}</span>
-                    <span class="b-label">Present</span>
-                </div>
+            
+            <div class="relative h-64 w-full">
+                <canvas id="trendChart"></canvas>
             </div>
         </div>
-    </a>
-    {% endfor %}
-</div>
 
-<div class="mt-1"></div>
-
-<!-- Main Dashboard Row: Overview (wider) + Quick Actions -->
-<div class="dashboard-main-row">
-
-    <!-- Today's Attendance Overview – expanded -->
-    <div class="card overview-card">
-        <div class="card-header">
-            <h3><i class="fas fa-chart-bar"></i> Today's Attendance Overview</h3>
-            <span class="card-date">{{ summary.date }}</span>
-        </div>
-        <div class="card-body overview-body">
-            <!-- Left: progress bars -->
-            <div class="overview-left">
-                <div class="attendance-progress">
-                    {% set total = summary.total if summary.total > 0 else 1 %}
-                    <div class="progress-item">
-                        <div class="progress-label">
-                            <span class="status-dot dot-present"></span>
-                            <span>Present</span>
-                            <span class="progress-count">{{ summary.present }}</span>
-                        </div>
-                        <div class="progress-bar-wrap">
-                            <div class="progress-bar bar-present"
-                                 style="width:{{ (summary.present / total * 100)|round(1) }}%"></div>
-                        </div>
-                        <div class="progress-pct">{{ (summary.present / total * 100)|round(1) }}%</div>
-                    </div>
-                    <div class="progress-item">
-                        <div class="progress-label">
-                            <span class="status-dot dot-late"></span>
-                            <span>Late</span>
-                            <span class="progress-count">{{ summary.late }}</span>
-                        </div>
-                        <div class="progress-bar-wrap">
-                            <div class="progress-bar bar-late"
-                                 style="width:{{ (summary.late / total * 100)|round(1) }}%"></div>
-                        </div>
-                        <div class="progress-pct">{{ (summary.late / total * 100)|round(1) }}%</div>
-                    </div>
-                    <div class="progress-item">
-                        <div class="progress-label">
-                            <span class="status-dot dot-absent"></span>
-                            <span>Absent</span>
-                            <span class="progress-count">{{ summary.absent }}</span>
-                        </div>
-                        <div class="progress-bar-wrap">
-                            <div class="progress-bar bar-absent"
-                                 style="width:{{ (summary.absent / total * 100)|round(1) }}%"></div>
-                        </div>
-                        <div class="progress-pct">{{ (summary.absent / total * 100)|round(1) }}%</div>
-                    </div>
-                    <div class="progress-item">
-                        <div class="progress-label">
-                            <span class="status-dot dot-leave"></span>
-                            <span>On Leave</span>
-                            <span class="progress-count">{{ summary.leave }}</span>
-                        </div>
-                        <div class="progress-bar-wrap">
-                            <div class="progress-bar bar-leave"
-                                 style="width:{{ (summary.leave / total * 100)|round(1) }}%"></div>
-                        </div>
-                        <div class="progress-pct">{{ (summary.leave / total * 100)|round(1) }}%</div>
-                    </div>
-                    <div class="progress-item">
-                        <div class="progress-label">
-                            <span class="status-dot dot-unmarked"></span>
-                            <span>Not Marked</span>
-                            <span class="progress-count">{{ summary.unmarked }}</span>
-                        </div>
-                        <div class="progress-bar-wrap">
-                            <div class="progress-bar bar-unmarked"
-                                 style="width:{{ (summary.unmarked / total * 100)|round(1) }}%"></div>
-                        </div>
-                        <div class="progress-pct">{{ (summary.unmarked / total * 100)|round(1) }}%</div>
-                    </div>
-                </div>
-
-                <!-- Status Legend -->
-                <div class="status-legend-row">
-                    <div class="legend-item"><span class="dot dot-present"></span> Present</div>
-                    <div class="legend-item"><span class="dot dot-late"></span> Late</div>
-                    <div class="legend-item"><span class="dot dot-absent"></span> Absent</div>
-                    <div class="legend-item"><span class="dot dot-leave"></span> Leave</div>
-                    <div class="legend-item"><span class="dot dot-unmarked"></span> Unmarked</div>
-                </div>
-            </div>
-
-            <!-- Right: circular progress -->
-            <div class="overview-right">
-                <div class="circular-progress">
-                    <svg viewBox="0 0 100 100" class="circular-svg">
-                        <circle class="circle-bg" cx="50" cy="50" r="40"/>
-                        <circle class="circle-fill" cx="50" cy="50" r="40"
-                                stroke-dasharray="{{ (summary.percentage * 2.51)|round(1) }} 251.2"/>
-                    </svg>
-                    <div class="circular-label">
-                        <span class="circular-value">{{ summary.percentage }}%</span>
-                        <span class="circular-text">Attendance</span>
-                    </div>
-                </div>
-
-                <div class="overview-summary-pills">
-                    <div class="summary-pill pill-present">
-                        <span class="pill-val">{{ summary.present }}</span>
-                        <span class="pill-label">Present</span>
-                    </div>
-                    <div class="summary-pill pill-late">
-                        <span class="pill-val">{{ summary.late }}</span>
-                        <span class="pill-label">Late</span>
-                    </div>
-                    <div class="summary-pill pill-absent">
-                        <span class="pill-val">{{ summary.absent }}</span>
-                        <span class="pill-label">Absent</span>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
-    <!-- Quick Actions – right side fully used -->
-    <div class="card actions-card">
-        <div class="card-header">
-            <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
-        </div>
-        <div class="card-body">
-            <div class="quick-actions-grid">
-                <a href="{{ url_for('attendance') }}" class="action-card">
-                    <div class="action-icon action-camera"><i class="fas fa-camera"></i></div>
-                    <div class="action-label">Mark Attendance</div>
-                    <div class="action-sub">Face Recognition</div>
+    <!-- Right Sidebar Column -->
+    <div class="lg:col-span-4 space-y-8">
+        
+        <!-- Quick Actions Grid -->
+        <div class="space-y-4">
+            <h4 class="text-sm font-black text-slate-400 uppercase tracking-widest px-1">Quick Actions</h4>
+            <div class="grid grid-cols-2 gap-4">
+                <a href="{{ url_for('attendance') }}" class="aspect-square bg-primary-container text-white p-4 rounded-xl flex flex-col items-center justify-center gap-2 shadow-sm hover:translate-y-[-2px] transition-all group">
+                    <span class="material-symbols-outlined text-3xl transition-transform group-hover:scale-110" style="font-variation-settings: 'FILL' 1;">fact_check</span>
+                    <span class="text-xs font-bold text-center">Mark<br>Attendance</span>
                 </a>
-                <a href="{{ url_for('register_student') }}" class="action-card">
-                    <div class="action-icon action-add"><i class="fas fa-user-plus"></i></div>
-                    <div class="action-label">Add Student</div>
-                    <div class="action-sub">Register New</div>
+                
+                <a href="{{ url_for('register_student') }}" class="aspect-square bg-surface-container-lowest text-primary p-4 rounded-xl flex flex-col items-center justify-center gap-2 border border-outline-variant/10 shadow-sm hover:translate-y-[-2px] transition-all group hover:bg-slate-50">
+                    <span class="material-symbols-outlined text-3xl transition-transform group-hover:scale-110">person_add</span>
+                    <span class="text-xs font-bold text-center">Add<br>Student</span>
                 </a>
-                <a href="{{ url_for('absent_list') }}" class="action-card">
-                    <div class="action-icon action-absent"><i class="fas fa-user-times"></i></div>
-                    <div class="action-label">Absent List</div>
-                    <div class="action-sub">Today's Absentees</div>
+                
+                <a href="{{ url_for('absent_list') }}" class="aspect-square bg-surface-container-lowest text-primary p-4 rounded-xl flex flex-col items-center justify-center gap-2 border border-outline-variant/10 shadow-sm hover:translate-y-[-2px] transition-all group hover:bg-slate-50">
+                    <span class="material-symbols-outlined text-3xl transition-transform group-hover:scale-110">assessment</span>
+                    <span class="text-xs font-bold text-center">Absent<br>List</span>
                 </a>
-                <a href="{{ url_for('leave_management') }}" class="action-card">
-                    <div class="action-icon action-leave"><i class="fas fa-calendar-minus"></i></div>
-                    <div class="action-label">Leave</div>
-                    <div class="action-sub">Manage Leaves</div>
-                </a>
-                <a href="{{ url_for('download_excel') }}" class="action-card">
-                    <div class="action-icon action-excel"><i class="fas fa-file-excel"></i></div>
-                    <div class="action-label">Excel Report</div>
-                    <div class="action-sub">Download</div>
-                </a>
-                <a href="{{ url_for('download_pdf') }}" class="action-card">
-                    <div class="action-icon action-pdf"><i class="fas fa-file-pdf"></i></div>
-                    <div class="action-label">PDF Report</div>
-                    <div class="action-sub">Absent List</div>
-                </a>
-                <a href="{{ url_for('students') }}" class="action-card">
-                    <div class="action-icon action-students"><i class="fas fa-users"></i></div>
-                    <div class="action-label">Students</div>
-                    <div class="action-sub">Manage All</div>
-                </a>
-                <a href="{{ url_for('penalties_view') }}" class="action-card">
-                    <div class="action-icon action-penalty"><i class="fas fa-exclamation-triangle"></i></div>
-                    <div class="action-label">Penalties</div>
-                    <div class="action-sub">View Records</div>
-                </a>
+                
+                <form method="POST" action="{{ url_for('train_model') }}" class="block aspect-square" onsubmit="return confirm('Train model now?');">
+                    <button type="submit" class="w-full h-full bg-tertiary text-white p-4 rounded-xl flex flex-col items-center justify-center gap-2 shadow-sm hover:translate-y-[-2px] transition-all group">
+                        <span class="material-symbols-outlined text-3xl transition-transform group-hover:scale-110" style="font-variation-settings: 'FILL' 1;">model_training</span>
+                        <span class="text-xs font-bold text-center">Train<br>Model</span>
+                    </button>
+                </form>
             </div>
         </div>
+
+        <!-- Attendance Overview Chart -->
+        <div class="bg-surface-container-lowest p-8 rounded-xl shadow-sm border border-outline-variant/10 flex flex-col items-center">
+            <h4 class="text-lg font-bold text-blue-900 w-full mb-8">System Summary</h4>
+            
+            {% set total = summary.total if summary.total > 0 else 1 %}
+
+            <div class="relative w-40 h-40 mb-10">
+                <svg class="w-full h-full transform -rotate-90">
+                    <circle class="text-slate-100" cx="80" cy="80" fill="transparent" r="70" stroke="currentColor" stroke-width="12"></circle>
+                    <!-- Dasharray formula: percentage / 100 * (2 * pi * radius) where radius=70, circumference ~= 440 -->
+                    {% set dash_length = (summary.percentage / 100 * 440)|round(0) %}
+                    <circle class="text-primary" cx="80" cy="80" fill="transparent" r="70" stroke="currentColor" stroke-dasharray="{{ dash_length }} 440" stroke-linecap="round" stroke-width="12"></circle>
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    <span class="text-3xl font-black text-blue-900">{{ summary.percentage }}%</span>
+                    <span class="text-[10px] text-slate-400 font-bold uppercase">Overall</span>
+                </div>
+            </div>
+
+            <div class="w-full space-y-4">
+                <div class="space-y-1.5">
+                    <div class="flex justify-between text-[11px] font-bold text-slate-600">
+                        <span>PRESENT</span>
+                        <span>{{ (summary.present / total * 100)|round(1) }}% ({{ summary.present }})</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                        <div class="bg-green-500 h-full rounded-full" style="width: {{ (summary.present / total * 100)|round(1) }}%"></div>
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <div class="flex justify-between text-[11px] font-bold text-slate-600">
+                        <span>LATE</span>
+                        <span>{{ (summary.late / total * 100)|round(1) }}% ({{ summary.late }})</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                        <div class="bg-on-tertiary-container h-full rounded-full" style="width: {{ (summary.late / total * 100)|round(1) }}%"></div>
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <div class="flex justify-between text-[11px] font-bold text-slate-600">
+                        <span>ABSENT</span>
+                        <span>{{ (summary.absent / total * 100)|round(1) }}% ({{ summary.absent }})</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                        <div class="bg-error h-full rounded-full" style="width: {{ (summary.absent / total * 100)|round(1) }}%"></div>
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <div class="flex justify-between text-[11px] font-bold text-slate-600">
+                        <span>LEAVE / UNMARKED</span>
+                        <span>{{ ((summary.leave + summary.unmarked) / total * 100)|round(1) }}% ({{ summary.leave + summary.unmarked }})</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                        <div class="bg-primary h-full rounded-full" style="width: {{ ((summary.leave + summary.unmarked) / total * 100)|round(1) }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        const labels = [{% for s in historical_stats %}"{{ s.date }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+        const data = [{% for s in historical_stats %}{{ s.percentage }}{% if not loop.last %}, {% endif %}{% endfor %}];
+        
+        if (labels.length === 0) return;
+
+        // Custom linear gradient for the chart line fill
+        let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(0, 35, 111, 0.2)');   // primary color with opacity
+        gradient.addColorStop(1, 'rgba(0, 35, 111, 0)');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Attendance %',
+                    data: data,
+                    borderColor: '#00236f', // primary
+                    backgroundColor: gradient,
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#00236f',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: '#191c1d',
+                        titleColor: '#ffffff',
+                        bodyColor: '#e1e3e4',
+                        padding: 12,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: function(context) {
+                                return `Attendance: ${context.parsed.y}%`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: { 
+                            color: 'rgba(25, 28, 29, 0.05)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            font: { family: 'Inter', size: 10, weight: 'bold' },
+                            color: '#757682',
+                            callback: value => value + '%',
+                            stepSize: 25
+                        }
+                    },
+                    x: {
+                        grid: { display: false, drawBorder: false },
+                        ticks: {
+                            font: { family: 'Inter', size: 10, weight: 'bold' },
+                            color: '#757682',
+                            maxTicksLimit: 7
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
 {% endblock %}

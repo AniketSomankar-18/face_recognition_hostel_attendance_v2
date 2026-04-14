@@ -13,7 +13,7 @@ from modules.face_recognition_module import FaceRecognitionModule
 from modules.attendance import (mark_attendance, get_today_summary,
                                  mark_absents_for_today, get_student_attendance_history,
                                  get_calendar_data, get_absent_students_today,
-                                 get_hostel_structure_stats)
+                                 get_hostel_structure_stats, get_historical_stats)
 from modules.reports import generate_excel_report, generate_absent_pdf
 from penalty_system import finalize_attendance, get_penalty_summary
 from email_service import mail, init_mail
@@ -111,11 +111,14 @@ def dashboard():
 
     model_trained = face_module.is_model_trained()
     dataset_count = face_module.get_student_count_in_dataset()
+    historical_stats = get_historical_stats(30)
+    
     return render_template('dashboard.html',
                            summary=summary,
                            buildings=buildings,
                            model_trained=model_trained,
-                           dataset_count=dataset_count)
+                           dataset_count=dataset_count,
+                           historical_stats=historical_stats)
 
 
 @app.route('/dashboard/building/<name>')
@@ -147,6 +150,13 @@ def block_view(building, block):
 
 
 # ─── Students ─────────────────────────────────────────────────────────────────
+@app.route('/students/search', methods=['POST'])
+@login_required
+def search_students_global():
+    query = request.form.get('query', '').strip()
+    return redirect(url_for('students', search=query))
+
+
 @app.route('/students')
 @login_required
 def students():
@@ -521,25 +531,29 @@ def penalties_view():
                            today=date.today().strftime('%d %b %Y'))
 
 
-@app.route('/api/run_penalty_now', methods=['POST'])
+@app.route('/penalties/run_manual', methods=['POST'])
 @login_required
-def run_penalty_now():
-    """Manual trigger for testing penalty system."""
+def run_penalty_manual():
+    """Manual trigger for penalty system via UI."""
     try:
         results = finalize_attendance(app)
-        return jsonify({'success': True,
-                        'marked_absent': results['marked_absent'],
-                        'penalties_applied': results['penalties_applied'],
-                        'emails_sent': results['emails_sent']})
+        flash(f"✓ Penalty check complete! Marked {results['marked_absent']} absent, "
+              f"applied {results['penalties_applied']} penalties, and sent {results['emails_sent']} emails.", "success")
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)})
+        flash(f"✗ Failed to run penalty check: {str(e)}", "danger")
+    return redirect(url_for('penalties_view'))
 
 
-@app.route('/api/mark_absent_all', methods=['POST'])
+@app.route('/attendance/mark_absent_all', methods=['POST'])
 @login_required
-def api_mark_absent_all():
+def mark_absent_all_ui():
+    """UI route to mark all unmarked students as absent."""
     count = mark_absents_for_today()
-    return jsonify({'success': True, 'message': f'Marked {count} students as absent.'})
+    if count > 0:
+        flash(f"✓ Successfully marked {count} students as absent.", "success")
+    else:
+        flash("All students are already marked for today.", "info")
+    return redirect(url_for('attendance'))
 
 
 # ─── Reports ──────────────────────────────────────────────────────────────────

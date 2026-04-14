@@ -47,74 +47,64 @@ def get_attendance_status_for_time(check_time=None):
             return 'closed_end'
 
 
-def mark_attendance(registration_number, marked_by='face_recognition'):
+def mark_attendance(registration_number, confidence=1.0, marked_by='face_recognition'):
     """
-    Mark attendance for a student.
-    Returns: (success: bool, message: str, status: str)
+    Mark attendance (IN or OUT) for a student with duplicate prevention.
+    Returns: (success: bool, message: str, direction: str)
     """
     today = date.today()
+    now = datetime.now()
 
-    # Check if student exists
-    student = Student.query.filter_by(
-        registration_number=registration_number, is_active=True
-    ).first()
+    # 1. Validate Student
+    student = Student.query.filter_by(registration_number=registration_number, is_active=True).first()
     if not student:
-        return False, "Student not found.", None
+        return False, "Identity not found in database.", None
 
-    # Check if already marked
-    existing = Attendance.query.filter_by(
-        registration_number=registration_number,
+    # 2. Check for Cooldown (Anti-Duplicate Pulse)
+    # Don't allow marking same user within 5 minutes to prevent camera stutter triggers
+    last_record = Attendance.query.filter_by(
+        registration_number=registration_number, 
         date=today
-    ).first()
-    if existing:
-        return False, f"Attendance already marked: {existing.status}", existing.status
+    ).order_by(Attendance.marked_at.desc()).first()
 
-    # Check if on leave
-    leave = Leave.query.filter_by(
-        registration_number=registration_number,
-        approved=True
-    ).filter(
-        Leave.from_date <= today,
-        Leave.to_date >= today
+    if last_record:
+        time_diff = (now - last_record.marked_at).total_seconds() / 60
+        if time_diff < 5: # 5 minute cooldown
+            return False, f"Cooldown active. Last pulses was {int(time_diff)}m ago.", last_record.direction
+
+    # 3. Determine Direction (IN/OUT Toggle)
+    # If no records today, it's an 'IN'. If last was 'IN', this is 'OUT'.
+    direction = 'IN'
+    if last_record and last_record.direction == 'IN':
+        direction = 'OUT'
+
+    # 4. Check for Leave
+    leave = Leave.query.filter_by(registration_number=registration_number, approved=True).filter(
+        Leave.from_date <= today, Leave.to_date >= today
     ).first()
 
+    status = 'Present'
     if leave:
-        record = Attendance(
-            registration_number=registration_number,
-            date=today,
-            status='Leave',
-            marked_at=datetime.now(),
-            marked_by=marked_by
-        )
-        db.session.add(record)
-        db.session.commit()
-        return True, f"{student.name} is on approved leave.", 'Leave'
-
-    # Determine status based on time
-    window = get_attendance_status_for_time()
-
-    if window == 'closed_early':
-        return False, "Attendance window not yet open (opens at 8:30 PM).", None
-    elif window == 'closed_end':
-        return False, "Attendance window closed (closed at 9:30 PM).", None
-    elif window == 'open_present':
-        status = 'Present'
-    elif window == 'open_late':
-        status = 'Late'
+        status = 'Leave'
     else:
-        status = 'Present'
+        # Determine Late status based on time window if needed
+        window = get_attendance_status_for_time()
+        if window == 'open_late': status = 'Late'
 
+    # 5. Persist Log
     record = Attendance(
         registration_number=registration_number,
         date=today,
         status=status,
-        marked_at=datetime.now(),
+        direction=direction,
+        confidence=confidence,
+        marked_at=now,
         marked_by=marked_by
     )
     db.session.add(record)
     db.session.commit()
 
-    return True, f"Attendance marked: {student.name} - {status}", status
+    return True, f"{direction} recorded for {student.name} ({confidence}%)", direction
 
 
 def mark_absents_for_today():
@@ -168,8 +158,17 @@ def get_today_summary():
     today = date.today()
     total = Student.query.filter_by(is_active=True).count()
 
-    present = Attendance.query.filter_by(date=today, status='Present').count()
-    late = Attendance.query.filter_by(date=today, status='Late').count()
+    # Count unique students who marked today
+    present = db.session.query(Attendance.registration_number).filter(
+        Attendance.date == today, 
+        Attendance.status.in_(['Present', 'Late'])
+    ).distinct().count()
+    
+    late = db.session.query(Attendance.registration_number).filter(
+        Attendance.date == today, 
+        Attendance.status == 'Late'
+    ).distinct().count()
+    
     absent = Attendance.query.filter_by(date=today, status='Absent').count()
     on_leave = Attendance.query.filter_by(date=today, status='Leave').count()
 
@@ -277,17 +276,26 @@ def get_hostel_structure_stats(building_code='N'):
         'blocks': {}
     }
 
-    # Optimization: Get all students and attendance for today once
+    # Optimization: Get all students and latest attendance for today once
     all_students = Student.query.filter(Student.room_number.like(f"{building_code} %")).all()
-    all_attendance = Attendance.query.filter_by(date=today).all()
-    attendance_map = {a.registration_number: a.status for a in all_attendance}
+    # Get all attendance for today, ordered by time to pick the latest
+    all_attendance = Attendance.query.filter_by(date=today).order_by(Attendance.marked_at.asc()).all()
+    
+    # Store latest status and direction per student
+    attendance_map = {}
+    for a in all_attendance:
+        attendance_map[a.registration_number] = {
+            'status': a.status,
+            'direction': a.direction,
+            'confidence': a.confidence
+        }
 
     stats['total_students'] = len(all_students)
-    stats['present_today'] = sum(1 for s in all_students if attendance_map.get(s.registration_number) in ['Present', 'Late'])
+    stats['present_today'] = sum(1 for s in all_students if attendance_map.get(s.registration_number, {}).get('status') in ['Present', 'Late'])
 
     for block in blocks:
         block_students = [s for s in all_students if s.room_number.startswith(f"{building_code} {block}")]
-        block_present = sum(1 for s in block_students if attendance_map.get(s.registration_number) in ['Present', 'Late'])
+        block_present = sum(1 for s in block_students if attendance_map.get(s.registration_number, {}).get('status') in ['Present', 'Late'])
 
         stats['blocks'][block] = {
             'total': len(block_students),
@@ -315,7 +323,7 @@ def get_hostel_structure_stats(building_code='N'):
                     }
                     continue
 
-                room_present = sum(1 for s in room_students if attendance_map.get(s.registration_number) in ['Present', 'Late'])
+                room_present = sum(1 for s in room_students if attendance_map.get(s.registration_number, {}).get('status') in ['Present', 'Late'])
                 room_absent = len(room_students) - room_present
                 
                 status = 'full'
@@ -331,8 +339,37 @@ def get_hostel_structure_stats(building_code='N'):
                     'students': [{
                         'name': s.name,
                         'reg': s.registration_number,
-                        'status': attendance_map.get(s.registration_number, 'Unmarked')
+                        'status': attendance_map.get(s.registration_number, {}).get('status', 'Unmarked'),
+                        'direction': attendance_map.get(s.registration_number, {}).get('direction', 'N/A')
                     } for s in room_students]
                 }
 
     return stats
+
+
+def get_historical_stats(days=30):
+    """Returns attendance percentage for the last X days."""
+    from datetime import timedelta
+    today = date.today()
+    results = []
+
+    total_students = Student.query.filter_by(is_active=True).count()
+    if total_students == 0:
+        return []
+
+    for i in range(days - 1, -1, -1):
+        target_date = today - timedelta(days=i)
+        
+        # Count present/late for this date
+        present_count = Attendance.query.filter_by(date=target_date).filter(
+            Attendance.status.in_(['Present', 'Late'])
+        ).count()
+        
+        pct = round((present_count / total_students) * 100, 1)
+        results.append({
+            'date': target_date.strftime('%d %b'),
+            'percentage': pct,
+            'count': present_count
+        })
+
+    return results

@@ -1,34 +1,52 @@
 {% extends "base.html" %}
-{% block title %}{{ building_name }} Blocks – SGGS Hostel{% endblock %}
+{% block title %}{{ building_name }} Blocks – Hostel Excellence{% endblock %}
 
 {% block content %}
-<div class="breadcrumb">
-    <a href="{{ url_for('dashboard') }}">Dashboard</a>
-    <i class="fas fa-chevron-right"></i>
-    <span>{{ building_name }} Hostel</span>
-</div>
-
-<div class="page-header">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
     <div>
-        <h1 class="page-title"><i class="fas fa-hotel"></i> {{ building_name }} Hostel</h1>
-        <p class="page-subtitle">Select a block to view floor-wise attendance</p>
+        <div class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+            <a href="{{ url_for('dashboard') }}" class="hover:text-primary transition-colors">Dashboard</a>
+            <span class="material-symbols-outlined text-[12px]">chevron_right</span>
+            <span class="text-primary">{{ building_name }} Hostel</span>
+        </div>
+        <h1 class="text-3xl font-extrabold text-blue-900 tracking-tight flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">apartment</span>
+            {{ building_name }} Blocks
+        </h1>
+        <p class="text-slate-500 font-medium mt-1">Select a block to view floor-wise room attendance</p>
     </div>
 </div>
 
-<div class="block-grid">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     {% for block, b_data in stats.blocks.items() %}
-    <a href="{{ url_for('block_view', building=building_name|lower, block=block) }}" class="block-card">
-        <div class="block-letter">{{ block }}</div>
-        <div class="block-info">
-            <h3 class="mb-0">Block {{ block }}</h3>
-            <div class="mini-label mt-1">{{ b_data.total }} Students</div>
+    {% set pct = (b_data.present / b_data.total * 100)|round(1) if b_data.total > 0 else 0 %}
+    <a href="{{ url_for('block_view', building=building_name|lower, block=block) }}" class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10 hover:border-primary/40 hover:-translate-y-1 transition-all group flex flex-col justify-between min-h-[200px] relative overflow-hidden">
+        
+        <!-- Decorative bg -->
+        <div class="absolute -right-8 -top-8 text-9xl text-slate-50 font-black tracking-tighter opacity-70 pointer-events-none group-hover:scale-110 transition-transform duration-700">
+            {{ block }}
         </div>
-        <div class="attendance-progress" style="width: 100%; margin-top: 0.5rem;">
-            <div class="progress-bar-wrap">
-                {% set pct = (b_data.present / b_data.total * 100)|round(1) if b_data.total > 0 else 0 %}
-                <div class="progress-bar" style="width: {{ pct }}%; background: var(--accent);"></div>
+
+        <div class="relative z-10">
+            <div class="flex justify-between items-start mb-6">
+                <div class="w-16 h-16 bg-primary-container text-white rounded-xl shadow-inner border border-white flex justify-center items-center font-black text-3xl">
+                    {{ block }}
+                </div>
+                <div class="bg-surface-container-high px-3 py-1 rounded-full text-xs font-bold text-on-surface-variant flex items-center gap-1 border border-outline-variant/20">
+                    <span class="material-symbols-outlined text-[14px]">group</span> {{ b_data.total }} Residents
+                </div>
             </div>
-            <div class="progress-pct">{{ pct }}% Present</div>
+            
+            <div class="mt-auto pt-4">
+                <div class="flex justify-between items-end mb-2">
+                    <span class="text-slate-500 font-bold text-sm tracking-wide">Occupancy</span>
+                    <span class="text-xl font-black text-green-600">{{ pct }}%</span>
+                </div>
+                
+                <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                    <div class="bg-green-500 h-full rounded-full transition-all duration-1000" style="width: {{ pct }}%"></div>
+                </div>
+            </div>
         </div>
     </a>
     {% endfor %}

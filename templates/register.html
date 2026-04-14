@@ -1,150 +1,153 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Edit' if edit_mode else 'Register' }} Student – Hostel Attendance{% endblock %}
+{% block title %}{{ 'Edit Student' if edit_mode else 'Register Student' }} – Hostel Excellence{% endblock %}
 
 {% block content %}
-<div class="page-header">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
     <div>
-        <h1 class="page-title">
-            <i class="fas fa-{{ 'edit' if edit_mode else 'user-plus' }}"></i>
-            {{ 'Edit Student' if edit_mode else 'Register Student' }}
+        <h1 class="text-3xl font-extrabold text-on-surface tracking-tight mb-2">
+            {{ 'Edit Student Profile' if edit_mode else 'Register New Student' }}
         </h1>
-        <p class="page-subtitle">
-            {{ 'Update student information' if edit_mode else 'Add a new student to the hostel' }}
+        <p class="text-on-surface-variant font-medium">
+            {{ 'Update existing student details in the directory.' if edit_mode else 'Add a new resident to the hostel directory and prepare for face encoding.' }}
         </p>
     </div>
-    <div class="header-actions">
-        <a href="{{ url_for('students') }}" class="btn btn-outline">
-            <i class="fas fa-arrow-left"></i> Back to Students
+    {% if edit_mode %}
+    <div class="flex items-center gap-3">
+        <a href="{{ url_for('students') }}" class="btn bg-surface-container-low text-primary px-4 py-2 rounded-xl font-bold hover:bg-surface-container transition-colors">
+            Cancel
         </a>
     </div>
+    {% endif %}
 </div>
 
-<div class="form-container">
-    <div class="card">
-        <div class="card-header">
-            <h3><i class="fas fa-info-circle"></i> Student Information</h3>
-        </div>
-        <div class="card-body">
-            <form method="POST" class="register-form" id="studentForm">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label class="form-label required">Registration Number</label>
-                        <input type="text"
-                               name="registration_number"
-                               class="form-control"
-                               placeholder="e.g. 2023CS001"
-                               value="{{ student.registration_number if edit_mode else form_data.get('registration_number', '') }}"
-                               {% if edit_mode %}readonly{% endif %}
-                               required>
-                        <small class="form-hint">Unique ID (e.g. YYYY + Dept + Serial)</small>
-                    </div>
+<div class="max-w-3xl">
+    <div class="bg-surface-container-lowest p-8 md:p-10 rounded-2xl shadow-sm border border-outline-variant/10 relative overflow-hidden">
+        
+        <!-- Decorative background element -->
+        <div class="absolute -right-24 -top-24 w-64 h-64 bg-slate-50 rounded-full opacity-50 pointer-events-none"></div>
 
-                    <div class="form-group">
-                        <label class="form-label required">Full Name</label>
-                        <input type="text"
-                               name="name"
-                               class="form-control"
-                               placeholder="Student full name"
-                               value="{{ student.name if edit_mode else form_data.get('name', '') }}"
-                               required>
-                    </div>
+        <form method="POST" class="relative z-10 space-y-8">
+            
+            <div class="border-b border-surface-container pb-4 mb-6">
+                <h3 class="text-lg font-bold text-primary flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">badge</span> 
+                    Student Identity
+                </h3>
+            </div>
 
-                    <div class="form-group">
-                        <label class="form-label required">Room Number</label>
-                        <input type="text"
-                               name="room_number"
-                               class="form-control"
-                               placeholder="e.g. A-101"
-                               value="{{ student.room_number if edit_mode else form_data.get('room_number', '') }}"
-                               required>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label required">Department</label>
-                        <select name="department" class="form-control" required>
-                            <option value="">Select Department</option>
-                            {% set depts = ['Computer Science', 'Electronics', 'Mechanical', 'Civil', 'Electrical', 'Information Technology', 'Chemical', 'Biotechnology', 'Physics', 'Mathematics'] %}
-                            {% for dept in depts %}
-                            <option value="{{ dept }}"
-                                {% if (edit_mode and student.department == dept) or (not edit_mode and form_data.get('department') == dept) %}selected{% endif %}>
-                                {{ dept }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label required">Phone Number</label>
-                        <input type="tel"
-                               name="phone"
-                               class="form-control"
-                               placeholder="10-digit mobile"
-                               value="{{ student.phone if edit_mode else form_data.get('phone', '') }}"
-                               pattern="[0-9]{10}"
-                               required>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label required">Parent Phone Number</label>
-                        <input type="tel"
-                               name="parent_phone"
-                               class="form-control"
-                               placeholder="Parent/guardian mobile"
-                               value="{{ student.parent_phone if edit_mode else form_data.get('parent_phone', '') }}"
-                               pattern="[0-9]{10}"
-                               required>
-                    </div>
-
-                    <div class="form-group form-full">
-                        <label class="form-label required">Email Address</label>
-                        <input type="email"
-                               name="email"
-                               class="form-control"
-                               placeholder="student@college.edu"
-                               value="{{ student.email if edit_mode else form_data.get('email', '') }}"
-                               required>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Registration Number -->
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Registration Number *</label>
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">pin</span>
+                        <input type="text" name="registration_number" value="{{ student.registration_number if student else form_data.get('registration_number', '') }}" 
+                            {% if edit_mode %}readonly{% endif %}
+                            class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 pl-9 pr-4 py-2.5 text-sm transition-colors {% if edit_mode %}opacity-70 cursor-not-allowed{% endif %}" 
+                            placeholder="e.g. 2023CS001" required>
                     </div>
                 </div>
 
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary btn-lg">
-                        <i class="fas fa-{{ 'save' if edit_mode else 'user-plus' }}"></i>
-                        {{ 'Save Changes' if edit_mode else 'Register & Capture Face' }}
-                    </button>
-                    <a href="{{ url_for('students') }}" class="btn btn-outline btn-lg">
-                        <i class="fas fa-times"></i> Cancel
-                    </a>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    {% if not edit_mode %}
-    <div class="card info-card">
-        <div class="card-body">
-            <div class="info-steps">
-                <div class="step active">
-                    <div class="step-num">1</div>
-                    <div class="step-label">Fill Form</div>
-                </div>
-                <div class="step-line"></div>
-                <div class="step">
-                    <div class="step-num">2</div>
-                    <div class="step-label">Capture Face</div>
-                </div>
-                <div class="step-line"></div>
-                <div class="step">
-                    <div class="step-num">3</div>
-                    <div class="step-label">Train Model</div>
-                </div>
-                <div class="step-line"></div>
-                <div class="step">
-                    <div class="step-num">4</div>
-                    <div class="step-label">Attendance Ready</div>
+                <!-- Full Name -->
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Full Legal Name *</label>
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">person</span>
+                        <input type="text" name="name" value="{{ student.name if student else form_data.get('name', '') }}" 
+                            class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 pl-9 pr-4 py-2.5 text-sm transition-colors" 
+                            placeholder="First Last" required>
+                    </div>
                 </div>
             </div>
-        </div>
+
+            <div class="border-b border-surface-container pb-4 mb-6 pt-4">
+                <h3 class="text-lg font-bold text-primary flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">apartment</span> 
+                    Allocation & Academics
+                </h3>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Room Number -->
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Assigned Room *</label>
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">meeting_room</span>
+                        <input type="text" name="room_number" value="{{ student.room_number if student else form_data.get('room_number', '') }}" 
+                            class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 pl-9 pr-4 py-2.5 text-sm transition-colors" 
+                            placeholder="e.g. N-10" required>
+                    </div>
+                </div>
+
+                <!-- Department -->
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Department *</label>
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">business_center</span>
+                        <input type="text" name="department" value="{{ student.department if student else form_data.get('department', '') }}" 
+                            class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 pl-9 pr-4 py-2.5 text-sm transition-colors" 
+                            placeholder="e.g. CSE" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-b border-surface-container pb-4 mb-6 pt-4">
+                <h3 class="text-lg font-bold text-primary flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">contact_phone</span> 
+                    Contact Information
+                </h3>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Student Phone -->
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Student Phone *</label>
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">smartphone</span>
+                        <input type="text" name="phone" value="{{ student.phone if student else form_data.get('phone', '') }}" 
+                            class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 pl-9 pr-4 py-2.5 text-sm transition-colors" 
+                            placeholder="10-digit number" required>
+                    </div>
+                </div>
+
+                <!-- Parent Phone -->
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Parent/Guardian Phone *</label>
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">contact_emergency</span>
+                        <input type="text" name="parent_phone" value="{{ student.parent_phone if student else form_data.get('parent_phone', '') }}" 
+                            class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 pl-9 pr-4 py-2.5 text-sm transition-colors" 
+                            placeholder="10-digit emergency contact" required>
+                    </div>
+                </div>
+
+                <!-- Email -->
+                <div class="space-y-1 md:col-span-2">
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Email Address *</label>
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">mail</span>
+                        <input type="email" name="email" value="{{ student.email if student else form_data.get('email', '') }}" 
+                            class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary border-x-0 border-t-0 pl-9 pr-4 py-2.5 text-sm transition-colors" 
+                            placeholder="student@sggs.ac.in" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Validation Info -->
+            <div class="bg-surface-container px-4 py-3 rounded-xl border border-outline-variant/10 mt-8 flex items-start gap-3">
+                <span class="material-symbols-outlined text-primary text-sm mt-0.5">info</span>
+                <p class="text-[11px] text-on-surface-variant leading-relaxed">
+                    {{ 'Updating these details will not affect the encoded face data.' if edit_mode else 'After registration, you will be automatically redirected to the Face Enrollment module to capture 20 images for the AI model.' }}
+                </p>
+            </div>
+
+            <div class="pt-6 flex justify-end">
+                <button type="submit" class="bg-primary text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:bg-primary-container transition-colors shadow-[0_4px_14px_0_rgba(0,35,111,0.39)] hover:shadow-[0_6px_20px_rgba(0,35,111,0.23)] hover:-translate-y-0.5 transform duration-200">
+                    {{ 'Update Student Data' if edit_mode else 'Save & Proceed to Face Capture' }}
+                </button>
+            </div>
+            
+        </form>
     </div>
-    {% endif %}
 </div>
 {% endblock %}

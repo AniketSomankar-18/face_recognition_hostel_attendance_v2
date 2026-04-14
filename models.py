@@ -61,11 +61,13 @@ class Attendance(db.Model):
     )
     date = db.Column(db.Date, nullable=False, default=datetime.utcnow().date)
     status = db.Column(db.String(20), nullable=False)   # Present | Late | Absent | Leave
+    direction = db.Column(db.String(10), nullable=False, default='IN') # IN | OUT
+    confidence = db.Column(db.Float, default=0.0)
     marked_at = db.Column(db.DateTime, default=datetime.utcnow)
     marked_by = db.Column(db.String(50), default='system')
 
     __table_args__ = (
-        db.UniqueConstraint('registration_number', 'date', name='unique_attendance'),
+        db.UniqueConstraint('registration_number', 'date', 'direction', name='unique_attendance'),
     )
 
 

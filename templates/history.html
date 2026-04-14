@@ -2,172 +2,246 @@
 {% block title %}Attendance History – {{ student.name }}{% endblock %}
 
 {% block content %}
-<div class="page-header">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
     <div>
-        <h1 class="page-title"><i class="fas fa-history"></i> Attendance History</h1>
-        <p class="page-subtitle">{{ student.name }} • {{ student.registration_number }}</p>
+        <h1 class="text-3xl font-extrabold text-on-surface tracking-tight mb-2">Resident Profile</h1>
+        <p class="text-on-surface-variant font-medium">Detailed attendance history and metrics.</p>
     </div>
-    <div class="header-actions">
-        <a href="{{ url_for('students') }}" class="btn btn-outline">
-            <i class="fas fa-arrow-left"></i> Back
+    
+    <div class="flex gap-3">
+        <a href="{{ url_for('students') }}" class="bg-surface-container text-on-surface px-6 py-2.5 rounded-xl font-bold shadow-sm flex items-center gap-2 hover:bg-surface-dim transition-colors">
+            <span class="material-symbols-outlined text-sm">arrow_back</span> Back to Directory
         </a>
     </div>
 </div>
 
-<!-- Student Card -->
-<div class="student-hero-card">
-    <div class="hero-avatar">{{ student.name[0].upper() }}</div>
-    <div class="hero-info">
-        <h2>{{ student.name }}</h2>
-        <div class="hero-meta">
-            <span><i class="fas fa-id-card"></i> {{ student.registration_number }}</span>
-            <span><i class="fas fa-door-open"></i> Room {{ student.room_number }}</span>
-            <span><i class="fas fa-graduation-cap"></i> {{ student.department }}</span>
-            <span><i class="fas fa-phone"></i> {{ student.phone }}</span>
-        </div>
-    </div>
-    <div class="hero-stats">
-        <div class="hero-stat">
-            <div class="hero-stat-val text-success">{{ stats.present }}</div>
-            <div class="hero-stat-label">Present</div>
-        </div>
-        <div class="hero-stat">
-            <div class="hero-stat-val text-warning">{{ stats.late }}</div>
-            <div class="hero-stat-label">Late</div>
-        </div>
-        <div class="hero-stat">
-            <div class="hero-stat-val text-danger">{{ stats.absent }}</div>
-            <div class="hero-stat-label">Absent</div>
-        </div>
-        <div class="hero-stat">
-            <div class="hero-stat-val text-info">{{ stats.leave }}</div>
-            <div class="hero-stat-label">Leave</div>
-        </div>
-        <div class="hero-stat">
-            <div class="hero-stat-val text-primary">{{ stats.percentage }}%</div>
-            <div class="hero-stat-label">Attendance</div>
-        </div>
-    </div>
-</div>
-
-<!-- Calendar Navigation -->
-<div class="calendar-nav">
-    {% set prev_month = month - 1 if month > 1 else 12 %}
-    {% set prev_year = year if month > 1 else year - 1 %}
-    {% set next_month = month + 1 if month < 12 else 1 %}
-    {% set next_year = year if month < 12 else year + 1 %}
-
-    <a href="{{ url_for('view_student', reg_num=student.registration_number, month=prev_month, year=prev_year) }}"
-       class="btn btn-outline">
-        <i class="fas fa-chevron-left"></i>
-    </a>
-    <h3 class="calendar-month-title">{{ cal_data.month_name }} {{ year }}</h3>
-    <a href="{{ url_for('view_student', reg_num=student.registration_number, month=next_month, year=next_year) }}"
-       class="btn btn-outline">
-        <i class="fas fa-chevron-right"></i>
-    </a>
-</div>
-
-<div class="history-layout">
-    <!-- Calendar -->
-    <div class="card calendar-card">
-        <div class="card-header">
-            <h3><i class="fas fa-calendar-alt"></i> {{ cal_data.month_name }} {{ year }}</h3>
-            <div class="calendar-legend">
-                <span class="cal-legend-item"><span class="cal-dot cal-present"></span>Present</span>
-                <span class="cal-legend-item"><span class="cal-dot cal-late"></span>Late</span>
-                <span class="cal-legend-item"><span class="cal-dot cal-absent"></span>Absent</span>
-                <span class="cal-legend-item"><span class="cal-dot cal-leave"></span>Leave</span>
-            </div>
-        </div>
-        <div class="card-body">
-            <div class="calendar-grid">
-                <div class="cal-header">Sun</div>
-                <div class="cal-header">Mon</div>
-                <div class="cal-header">Tue</div>
-                <div class="cal-header">Wed</div>
-                <div class="cal-header">Thu</div>
-                <div class="cal-header">Fri</div>
-                <div class="cal-header">Sat</div>
-
-                {% for week in cal_data.calendar %}
-                {% for day in week %}
-                {% if day == 0 %}
-                <div class="cal-day cal-empty"></div>
-                {% else %}
-                {% set status = cal_data.attendance_map.get(day) %}
-                <div class="cal-day cal-{{ status.lower() if status else 'none' }}"
-                     title="{{ status or 'No record' }}">
-                    <span class="cal-day-num">{{ day }}</span>
-                    {% if status %}
-                    <span class="cal-status-icon">
-                        {% if status == 'Present' %}<i class="fas fa-check"></i>
-                        {% elif status == 'Late' %}<i class="fas fa-clock"></i>
-                        {% elif status == 'Absent' %}<i class="fas fa-times"></i>
-                        {% elif status == 'Leave' %}<i class="fas fa-plane"></i>
-                        {% endif %}
-                    </span>
-                    {% endif %}
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    
+    <!-- Left Column: Student Info & Month Calendar -->
+    <div class="lg:col-span-4 space-y-6">
+        
+        <!-- Profile Bento Card -->
+        <div class="bg-surface-container-lowest p-8 rounded-2xl shadow-sm border border-outline-variant/10 relative overflow-hidden group">
+            <div class="absolute -right-16 -top-16 w-48 h-48 bg-primary/5 rounded-full z-0 group-hover:scale-110 transition-transform duration-700"></div>
+            
+            <div class="relative z-10">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-16 h-16 rounded-2xl bg-primary text-white flex items-center justify-center font-black text-2xl shadow-lg border-2 border-primary-container">
+                        {{ student.name[0]|upper }}
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-extrabold text-blue-900 leading-tight">{{ student.name }}</h2>
+                        <span class="text-xs font-bold text-primary tracking-wider uppercase bg-primary-container/20 px-2 py-0.5 rounded">{{ student.registration_number }}</span>
+                    </div>
                 </div>
-                {% endif %}
-                {% endfor %}
-                {% endfor %}
+
+                <div class="space-y-4 pt-4 border-t border-surface-container">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-slate-500 font-medium">Assigned Room</span>
+                        <span class="font-bold text-on-surface flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[16px] text-primary">meeting_room</span> 
+                            {{ student.room_number }}
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-slate-500 font-medium">Department</span>
+                        <span class="font-bold text-on-surface">{{ student.department }}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-slate-500 font-medium">Contact</span>
+                        <span class="font-bold text-on-surface">{{ student.phone }}</span>
+                    </div>
+                </div>
             </div>
         </div>
+
+        <!-- Academic Performance / Summary -->
+        <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
+            <h3 class="font-bold text-blue-900 mb-6 flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">donut_large</span> Overall Metrics
+            </h3>
+
+            <div class="flex justify-between items-end mb-4">
+                <span class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Total Attendance</span>
+                <span class="text-3xl font-black text-primary">{{ stats.percentage }}%</span>
+            </div>
+            
+            <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mb-6">
+                <!-- Color coding based on threshold could be implemented here -->
+                <div class="bg-primary h-full rounded-full transition-all duration-1000" style="width: {{ stats.percentage }}%"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-green-50 p-3 rounded-xl border border-green-100">
+                    <div class="text-[10px] font-bold uppercase text-green-700 tracking-wider mb-1">Present</div>
+                    <div class="text-lg font-black text-green-700">{{ stats.present }}</div>
+                </div>
+                <div class="bg-on-tertiary-container/10 p-3 rounded-xl border border-on-tertiary-container/20">
+                    <div class="text-[10px] font-bold uppercase text-on-tertiary-container tracking-wider mb-1">Late</div>
+                    <div class="text-lg font-black text-on-tertiary-container">{{ stats.late }}</div>
+                </div>
+                <div class="bg-error-container/40 p-3 rounded-xl border border-error/20">
+                    <div class="text-[10px] font-bold uppercase text-error tracking-wider mb-1">Absent</div>
+                    <div class="text-lg font-black text-error">{{ stats.absent }}</div>
+                </div>
+                <div class="bg-surface-container p-3 rounded-xl border border-outline-variant/20">
+                    <div class="text-[10px] font-bold uppercase text-on-surface tracking-wider mb-1">Leave</div>
+                    <div class="text-lg font-black text-on-surface">{{ stats.leave }}</div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <!-- Recent Records -->
-    <div class="card">
-        <div class="card-header">
-            <h3><i class="fas fa-list"></i> Recent Records</h3>
+    <!-- Right Column: Calendar View & Monthly Log -->
+    <div class="lg:col-span-8 space-y-6">
+        
+        <!-- Calendar Viewer -->
+        <div class="bg-surface-container-lowest p-6 md:p-8 rounded-2xl shadow-sm border border-outline-variant/10">
+            
+            {% set prev_month = month - 1 if month > 1 else 12 %}
+            {% set prev_year = year if month > 1 else year - 1 %}
+            {% set next_month = month + 1 if month < 12 else 1 %}
+            {% set next_year = year if month < 12 else year + 1 %}
+
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="text-xl font-bold text-blue-900 flex items-center gap-2">
+                    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">calendar_month</span>
+                    {{ cal_data.month_name }} <span class="text-slate-400 font-medium">{{ year }}</span>
+                </h3>
+                <div class="flex gap-2">
+                    <a href="{{ url_for('view_student', reg_num=student.registration_number, month=prev_month, year=prev_year) }}" class="w-8 h-8 rounded-full bg-surface hover:bg-slate-200 border border-outline-variant/20 flex items-center justify-center text-slate-500 transition-colors">
+                        <span class="material-symbols-outlined text-sm">chevron_left</span>
+                    </a>
+                    <a href="{{ url_for('view_student', reg_num=student.registration_number, month=next_month, year=next_year) }}" class="w-8 h-8 rounded-full bg-surface hover:bg-slate-200 border border-outline-variant/20 flex items-center justify-center text-slate-500 transition-colors">
+                        <span class="material-symbols-outlined text-sm">chevron_right</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Calendar Display -->
+            <div class="mb-6">
+                <!-- Days Header -->
+                <div class="grid grid-cols-7 gap-1 md:gap-2 mb-2 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                </div>
+                
+                <!-- Grid -->
+                <!-- Replace with dynamic Jinja grid -->
+                <div class="grid grid-cols-7 gap-1 md:gap-2">
+                    {% for week in cal_data.calendar %}
+                        {% for day in week %}
+                            {% if day == 0 %}
+                                <div class="aspect-square bg-transparent"></div>
+                            {% else %}
+                                {% set status = cal_data.attendance_map.get(day) %}
+                                
+                                {% set bg_color = 'bg-surface hover:bg-surface-container border border-outline-variant/20 text-slate-500' %}
+                                {% set icon_html = '' %}
+
+                                {% if status %}
+                                    {% if status == 'Present' %}
+                                        {% set bg_color = 'bg-green-50 border border-green-200 text-green-700 font-bold' %}
+                                        {% set icon_html = '<span class="material-symbols-outlined absolute bottom-1 right-1 text-[10px] text-green-600" style="font-variation-settings: \'FILL\' 1;">check_circle</span>' %}
+                                    {% elif status == 'Late' %}
+                                        {% set bg_color = 'bg-on-tertiary-container/10 border border-on-tertiary-container/30 text-on-tertiary-container font-bold' %}
+                                        {% set icon_html = '<span class="material-symbols-outlined absolute bottom-1 right-1 text-[10px] text-on-tertiary-container" style="font-variation-settings: \'FILL\' 1;">schedule</span>' %}
+                                    {% elif status == 'Absent' %}
+                                        {% set bg_color = 'bg-error-container/40 border border-error/20 text-error font-bold' %}
+                                        {% set icon_html = '<span class="material-symbols-outlined absolute bottom-1 right-1 text-[10px] text-error" style="font-variation-settings: \'FILL\' 1;">cancel</span>' %}
+                                    {% elif status == 'Leave' %}
+                                        {% set bg_color = 'bg-primary/10 border border-primary/20 text-primary font-bold' %}
+                                        {% set icon_html = '<span class="material-symbols-outlined absolute bottom-1 right-1 text-[10px] text-primary" style="font-variation-settings: \'FILL\' 1;">event_note</span>' %}
+                                    {% endif %}
+                                {% endif %}
+
+                                <div class="relative aspect-square {{ bg_color }} rounded-xl flex items-center justify-center transition-colors cursor-default" title="{{ status or 'No record' }}">
+                                    <span class="text-sm md:text-base">{{ day }}</span>
+                                    {% if status %}
+                                        {{ icon_html|safe }}
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="flex flex-wrap items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-8 pt-6 border-t border-surface-container">
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-green-50 border border-green-200"></span> Present</div>
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-on-tertiary-container/10 border border-on-tertiary-container/30"></span> Late</div>
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-error-container/40 border border-error/20"></span> Absent</div>
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-primary/10 border border-primary/20"></span> Leave</div>
+            </div>
         </div>
-        <div class="card-body p-0">
+
+        <!-- Log List -->
+        <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/10 overflow-hidden">
+            <div class="px-6 py-4 border-b border-surface-container bg-surface">
+                <h3 class="font-bold text-blue-900 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">history</span> Session Log ({{ cal_data.month_name }})
+                </h3>
+            </div>
+            
             {% if attendance_records %}
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-surface-container-low text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                         <tr>
-                            <th>Date</th>
-                            <th>Day</th>
-                            <th>Status</th>
-                            <th>Marked At</th>
-                            <th>Marked By</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Date</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Status</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Time</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Marked By</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="divide-y divide-surface-container">
                         {% for record in attendance_records %}
-                        <tr>
-                            <td>{{ record.date.strftime('%d %b %Y') }}</td>
-                            <td>{{ record.date.strftime('%A') }}</td>
-                            <td>
-                                <span class="status-chip status-{{ record.status.lower() }}">
-                                    {% if record.status == 'Present' %}<i class="fas fa-check"></i>
-                                    {% elif record.status == 'Late' %}<i class="fas fa-clock"></i>
-                                    {% elif record.status == 'Absent' %}<i class="fas fa-times"></i>
-                                    {% elif record.status == 'Leave' %}<i class="fas fa-plane"></i>
-                                    {% endif %}
-                                    {{ record.status }}
-                                </span>
+                        <tr class="hover:bg-surface-container-low transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="font-bold text-on-surface text-sm">{{ record.date.strftime('%d %b %Y') }}</div>
+                                <div class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">{{ record.date.strftime('%A') }}</div>
                             </td>
-                            <td>
+                            <td class="px-6 py-4">
+                                {% if record.status == 'Present' %}
+                                    <span class="inline-flex py-1 px-2.5 rounded-lg text-[10px] font-bold bg-green-100 text-green-700 border border-green-200">Present</span>
+                                {% elif record.status == 'Late' %}
+                                    <span class="inline-flex py-1 px-2.5 rounded-lg text-[10px] font-bold bg-on-tertiary-container/20 text-on-tertiary-container border border-on-tertiary-container/30">Late</span>
+                                {% elif record.status == 'Absent' %}
+                                    <span class="inline-flex py-1 px-2.5 rounded-lg text-[10px] font-bold bg-error-container text-on-error-container border border-error/20">Absent</span>
+                                {% elif record.status == 'Leave' %}
+                                    <span class="inline-flex py-1 px-2.5 rounded-lg text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">On Leave</span>
+                                {% else %}
+                                    <span class="inline-flex py-1 px-2.5 rounded-lg text-[10px] font-bold bg-surface-container text-slate-500">{{ record.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-sm font-medium text-slate-600">
                                 {% if record.marked_at %}
-                                {{ record.marked_at.strftime('%I:%M %p') }}
-                                {% else %}—{% endif %}
+                                    {{ record.marked_at.strftime('%I:%M %p') }}
+                                {% else %}
+                                    —
+                                {% endif %}
                             </td>
-                            <td>{{ record.marked_by or '—' }}</td>
+                            <td class="px-6 py-4 text-xs font-medium text-slate-500">
+                                {% if record.marked_by == 'SYSTEM' %}
+                                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">smart_toy</span> AI Agent</span>
+                                {% else %}
+                                    {{ record.marked_by or '—' }}
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
             {% else %}
-            <div class="empty-state">
-                <i class="fas fa-calendar-times"></i>
-                <h3>No Records</h3>
-                <p>No attendance records found for this period.</p>
+            <div class="p-10 flex flex-col items-center justify-center text-center">
+                <span class="material-symbols-outlined text-4xl text-slate-300 mb-2">inbox</span>
+                <p class="text-sm font-bold text-slate-500">No logs generated for this month.</p>
             </div>
             {% endif %}
         </div>
+        
     </div>
 </div>
 {% endblock %}
