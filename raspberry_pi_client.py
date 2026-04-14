@@ -5,7 +5,7 @@ import time
 import os
 
 # Deployment Configuration: Change this to your public Cloud URL or env
-SERVER_URL = os.environ.get('SERVER_URL', "http://localhost:5000")
+SERVER_URL = os.environ.get('SERVER_URL', "https://sggs-hostel.onrender.com/")
 USERNAME = "warden"
 PASSWORD = "warden123"
 
@@ -34,7 +34,7 @@ def main():
                     continue
 
                 state_data = state_resp.json()
-                is_active = state_data.get('active', False)
+                is_active = True
                 backoff_count = 0 # Reset on success
             except Exception as e:
                 backoff_count = min(backoff_count + 1, 10)
