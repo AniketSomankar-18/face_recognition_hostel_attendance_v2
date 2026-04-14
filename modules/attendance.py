@@ -314,8 +314,15 @@ def get_hostel_structure_stats(building_code='N'):
     stats['total_students'] = len(all_students)
     stats['present_today'] = sum(1 for s in all_students if attendance_map.get(s.registration_number, {}).get('status') in ['Present', 'Late'])
 
+    # Optimization: Pre-group students by room for O(1) lookup speed
+    room_to_students = {}
+    for s in all_students:
+        room_to_students.setdefault(s.room_number, []).append(s)
+
     for block in blocks:
-        block_students = [s for s in all_students if s.room_number.startswith(f"{building_code} {block}")]
+        # Optimized block filter
+        block_prefix = f"{building_code} {block}"
+        block_students = [s for s in all_students if s.room_number.startswith(block_prefix)]
         block_present = sum(1 for s in block_students if attendance_map.get(s.registration_number, {}).get('status') in ['Present', 'Late'])
 
         stats['blocks'][block] = {
@@ -325,33 +332,23 @@ def get_hostel_structure_stats(building_code='N'):
         }
 
         for floor in floors:
-            floor_students = [s for s in block_students if s.room_number.startswith(f"{building_code} {block}{floor}")]
-            
-            stats['blocks'][block]['floors'][floor] = {
-                'rooms': {}
-            }
+            floor_prefix = f"{building_code} {block}{floor}"
+            stats['blocks'][block]['floors'][floor] = { 'rooms': {} }
 
             for room_num in rooms:
                 room_id = f"{building_code} {block}{floor}{room_num}"
-                room_students = [s for s in floor_students if s.room_number == room_id]
+                room_students = room_to_students.get(room_id, [])
                 
                 if not room_students:
                     stats['blocks'][block]['floors'][floor]['rooms'][room_num] = {
-                        'status': 'empty',
-                        'count': 0,
-                        'present': 0,
-                        'students': []
+                        'status': 'empty', 'count': 0, 'present': 0, 'students': []
                     }
                     continue
 
                 room_present = sum(1 for s in room_students if attendance_map.get(s.registration_number, {}).get('status') in ['Present', 'Late'])
                 room_absent = len(room_students) - room_present
                 
-                status = 'full'
-                if room_absent > 0:
-                    status = 'absent'
-                # if room_present > 0 and any(attendance_map.get(s.registration_number) == 'Late' for s in room_students):
-                #     status = 'warning'
+                status = 'full' if room_absent == 0 else 'absent'
 
                 stats['blocks'][block]['floors'][floor]['rooms'][room_num] = {
                     'status': status,
@@ -366,7 +363,6 @@ def get_hostel_structure_stats(building_code='N'):
                 }
 
     return stats
-
 
 def get_historical_stats(days=30, hostel_code='ALL'):
     """Fetch attendance percentages for the last N days (Optimized + Hostel Filter)."""

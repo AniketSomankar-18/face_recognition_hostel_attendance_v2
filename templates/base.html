@@ -4,40 +4,18 @@
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>{% block title %}Hostel Excellence{% endblock %}</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <script id="tailwind-config">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        primary: '#00236f',
-                        'primary-container': '#4f72c3',
-                        'on-primary': '#ffffff',
-                        'on-primary-container': '#001344',
-                        secondary: '#425e91',
-                        surface: '#f9fafb',
-                        'surface-container-lowest': '#ffffff',
-                        'surface-container-low': '#f3f4f6',
-                        'surface-container': '#e5e7eb',
-                        'surface-container-high': '#d1d5db',
-                        'on-surface': '#111827',
-                        'on-surface-variant': '#4b5563',
-                        'outline-variant': '#cbd5e1',
-                        error: '#dc2626',
-                        'error-container': '#fef2f2',
-                        'on-error-container': '#991b1b',
-                        'tertiary-fixed-dim': '#6b7280',
-                        'on-tertiary-container': '#475569'
-                    }
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
                 }
             }
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block head %}{% endblock %}
@@ -127,6 +105,8 @@
             </form>
         </div>
     </aside>
+    <!-- Sidebar Overlay -->
+    <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden md:hidden transition-opacity opacity-0"></div>
     {% endif %}
 
     <!-- Main View -->
@@ -139,7 +119,7 @@
                     <span class="material-symbols-rounded">menu</span>
                 </button>
 
-                <form action="{{ url_for('search_students_global') }}" method="POST" class="global-search-form hidden sm:flex">
+                <form action="{{ url_for('search_students_global') }}" method="POST" class="global-search-form flex-1 max-w-[400px]">
                     <span class="material-symbols-rounded text-slate-400">search</span>
                     <input type="text" name="query" placeholder="Search student or room..." autocomplete="off">
                 </form>
@@ -164,13 +144,6 @@
             </div>
         </header>
 
-        <!-- Mobile Search (only on small screens) -->
-        <div class="sm:hidden px-4 py-3 bg-white border-b border-slate-100 no-print">
-            <form action="{{ url_for('search_students_global') }}" method="POST" class="global-search-form w-full">
-                <span class="material-symbols-rounded text-slate-400">search</span>
-                <input type="text" name="query" placeholder="Search student..." class="w-full">
-            </form>
-        </div>
         {% endif %}
 
         <!-- Page Content Container -->
@@ -241,8 +214,24 @@
 
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
-            if (sidebar) {
-                sidebar.classList.toggle('-translate-x-full');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (sidebar && overlay) {
+                const isOpen = !sidebar.classList.contains('-translate-x-full');
+                if (isOpen) {
+                    sidebar.classList.add('-translate-x-full');
+                    overlay.classList.add('hidden');
+                    overlay.classList.remove('opacity-100');
+                    overlay.classList.add('opacity-0');
+                    document.body.style.overflow = '';
+                } else {
+                    sidebar.classList.remove('-translate-x-full');
+                    overlay.classList.remove('hidden');
+                    setTimeout(() => {
+                        overlay.classList.remove('opacity-0');
+                        overlay.classList.add('opacity-100');
+                    }, 10);
+                    document.body.style.overflow = 'hidden';
+                }
             }
         }
 
@@ -250,8 +239,8 @@
         document.addEventListener('click', (e) => {
             const sidebar = document.getElementById('sidebar');
             const toggle = document.querySelector('[onclick="toggleSidebar()"]');
-            if (window.innerWidth < 768 && sidebar && !sidebar.contains(e.target) && !toggle.contains(e.target)) {
-                sidebar.classList.add('-translate-x-full');
+            if (window.innerWidth < 768 && sidebar && !sidebar.classList.contains('-translate-x-full') && !sidebar.contains(e.target) && !toggle.contains(e.target)) {
+                toggleSidebar();
             }
         });
     </script>

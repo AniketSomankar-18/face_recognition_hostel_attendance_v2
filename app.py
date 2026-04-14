@@ -1,7 +1,7 @@
 import os
 import fcntl
 import atexit
-import base64
+import threading
 from datetime import datetime, date
 
 from flask import (Flask, render_template, request, redirect, url_for,
@@ -42,6 +42,23 @@ login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'warning'
 
 face_module = FaceRecognitionModule(Config)
+
+# ─── Training State ───────────────────────────────────────────────────────────
+training_lock = threading.Lock()
+is_training = False
+last_training_error = None
+
+def background_train(app_context):
+    global is_training, last_training_error
+    with app_context:
+        try:
+            success, message, count = face_module.train_model()
+            if not success:
+                last_training_error = message
+        except Exception as e:
+            last_training_error = str(e)
+        finally:
+            is_training = False
 
 # ─── Scheduler ────────────────────────────────────────────────────────────────
 scheduler = BackgroundScheduler()
@@ -375,23 +392,32 @@ def get_face_count(reg_num):
                     'required': Config.FACE_IMAGES_REQUIRED})
 
 
-# ─── Train Model ──────────────────────────────────────────────────────────────
 @app.route('/train', methods=['POST'])
 @login_required
 def train_model():
-    # FIX: properly detect and use face_recognition library
-    try:
-        import face_recognition as fr_check   # noqa – just checking it's available
-    except ImportError:
-        flash('face_recognition library is not installed. Run: pip install face-recognition', 'danger')
+    global is_training, last_training_error
+    
+    if is_training:
+        flash('AI Engine is already training. Please wait...', 'warning')
         return redirect(url_for('dashboard'))
 
-    success, message, count = face_module.train_model()
-    if success:
-        flash(f'✓ Model trained successfully! Encoded {count} students.', 'success')
-    else:
-        flash(f'✗ Training failed: {message}', 'danger')
+    is_training = True
+    last_training_error = None
+    
+    # Start training in background thread
+    thread = threading.Thread(target=background_train, args=(app.app_context(),))
+    thread.start()
+    
+    flash('Identity learning started in background. The system will be ready in a few moments.', 'info')
     return redirect(url_for('dashboard'))
+
+@app.route('/api/training/status')
+@login_required
+def training_status():
+    return jsonify({
+        'is_training': is_training,
+        'error': last_training_error
+    })
 
 
 # ─── Attendance ───────────────────────────────────────────────────────────────
@@ -528,6 +554,49 @@ def recognize_frame():
         return jsonify({'success': True, 'results': recognition_results, 'faces_count': len(results)})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
+import json
+import time
+
+# ─── IoT Camera Edge State ────────────────────────────────────────────────────
+CAMERA_STATE_FILE = os.path.join('scratch', 'camera_state.json')
+
+@app.route('/api/camera/state', methods=['GET'])
+@login_required
+def get_camera_state():
+    try:
+        with open(CAMERA_STATE_FILE, 'r') as f:
+            data = json.load(f)
+            return jsonify(data)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return jsonify({'active': False})
+
+@app.route('/api/camera/toggle', methods=['POST'])
+@login_required
+def toggle_camera_state():
+    data = request.get_json()
+    active = data.get('active', False)
+    os.makedirs(os.path.dirname(CAMERA_STATE_FILE), exist_ok=True)
+    with open(CAMERA_STATE_FILE, 'w') as f:
+        json.dump({'active': active, 'timestamp': time.time()}, f)
+    return jsonify({'success': True, 'active': active})
+
+@app.route('/api/attendance/recent', methods=['GET'])
+@login_required
+def get_recent_attendance():
+    records = Attendance.query.filter_by(date=date.today()).order_by(Attendance.marked_at.desc()).limit(5).all()
+    results = []
+    for r in records:
+        s = Student.query.filter_by(registration_number=r.registration_number).first()
+        results.append({
+            'reg_num': r.registration_number,
+            'name': s.name if s else 'Unknown',
+            'status': r.status,
+            'room': s.room_number if s else 'N/A',
+            'confidence': 100, # Display purpose
+            'marked_at_str': r.marked_at.strftime('%I:%M:%S %p') if r.marked_at else '',
+            'marked_at': r.marked_at.timestamp() if r.marked_at else 0
+        })
+    return jsonify({'success': True, 'results': results})
 
 
 # ─── Leave Management ─────────────────────────────────────────────────────────
@@ -747,9 +816,9 @@ def init_database():
             warden.set_password('warden123')
             db.session.add(warden)
             db.session.commit()
-            print("[INFO] Default warden created for Nandagiri Hostel.")
-        # Students are seeded via seed_from_csv.py
-        pass
+            print("[INFO] Default warden created.")
+
+init_database()
 
 
 if __name__ == '__main__':

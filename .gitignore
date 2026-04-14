@@ -1,5 +1,6 @@
 # Virtual environment
 venv/
+.venv/
 
 # Database
 database/hostel.db
@@ -25,3 +26,15 @@ Thumbs.db
 
 # Environment variables
 .env
+
+# SSL certificates (never commit)
+*.pem
+
+# Runtime artifacts
+scheduler.lock
+scratch/
+
+# Node (Tailwind CDN workaround)
+node_modules/
+package-lock.json
+package.json

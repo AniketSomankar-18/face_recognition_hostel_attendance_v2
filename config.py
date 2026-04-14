@@ -19,15 +19,15 @@ class Config:
     ENCODINGS_FILE = os.path.join(BASE_DIR, 'models', 'encodings.pkl')
 
     # Attendance window (24-hour format)
-    ATTENDANCE_START_HOUR = 8    # 8:30 PM => for testing use 0
-    ATTENDANCE_START_MIN = 30
-    LATE_HOUR = 9                # 9:00 PM
-    LATE_MIN = 0
-    ATTENDANCE_END_HOUR = 9      # 9:30 PM
-    ATTENDANCE_END_MIN = 30
+    ATTENDANCE_START_HOUR = int(os.environ.get('START_HOUR', 20))    # 8:30 PM
+    ATTENDANCE_START_MIN = int(os.environ.get('START_MIN', 30))
+    LATE_HOUR = int(os.environ.get('LATE_HOUR', 21))                # 9:00 PM
+    LATE_MIN = int(os.environ.get('LATE_MIN', 0))
+    ATTENDANCE_END_HOUR = int(os.environ.get('END_HOUR', 21))       # 9:30 PM
+    ATTENDANCE_END_MIN = int(os.environ.get('END_MIN', 30))
 
-    # For testing: keep window open 24 hours
-    TESTING_MODE = True          # Set False for production
+    # PRODUCTION MODE: Set False to enforce timing windows
+    TESTING_MODE = os.environ.get('FLASK_TESTING', 'True') == 'True'
 
     # Face recognition
     RECOGNITION_TOLERANCE = 0.5

@@ -176,38 +176,42 @@ class FaceRecognitionModule:
         return results
 
     def capture_faces(self, registration_number, required_count=10):
-        """Capture facial identity samples."""
+        """
+        Capture facial identity samples without GUI.
+        Note: On Cloud servers, this will likely fail due to lack of local camera.
+        The Raspberry Pi usually handles this via the /api/pi/frame endpoint.
+        """
         save_dir = os.path.join(self.dataset_dir, registration_number)
         os.makedirs(save_dir, exist_ok=True)
 
         cap = cv2.VideoCapture(0)
         if not cap.isOpened():
-            return False, "Camera access failed.", 0
+            return False, "Camera access failed (No local sensor detected).", 0
 
         face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
         captured = 0
         frame_idx = 0
 
-        while captured < required_count:
+        # Limited attempts to prevent infinite loop on headless systems
+        max_attempts = required_count * 10 
+        attempts = 0
+
+        while captured < required_count and attempts < max_attempts:
             ret, frame = cap.read()
             if not ret: break
             
-            frame_idx += 1
-            if frame_idx % 2 == 0: # Smooth capture
+            attempts += 1
+            if attempts % 2 == 0: 
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 faces = face_cascade.detectMultiScale(gray, 1.3, 5, minSize=(100, 100))
                 
                 for (x, y, w, h) in faces:
+                    if captured >= required_count: break
                     face_img = frame[y:y+h, x:x+w]
                     cv2.imwrite(os.path.join(save_dir, f"{captured}.jpg"), face_img)
                     captured += 1
-                    cv2.rectangle(frame, (x,y), (x+w, y+h), (0,255,0), 2)
             
-            cv2.imshow("Identity Capture - Stay still", frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'): break
-
         cap.release()
-        cv2.destroyAllWindows()
         return (captured > 0), f"Captured {captured} samples.", captured
 
     def is_model_trained(self):

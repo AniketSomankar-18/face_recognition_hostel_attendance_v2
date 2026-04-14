@@ -71,8 +71,10 @@
             
             <div class="video-viewport">
                 {% if model_trained %}
-                    <video id="videoFeed" autoplay playsinline class="z-10"></video>
-                    <canvas id="recognitionCanvas" class="z-20"></canvas>
+                    <div id="videoPlaceholder" class="w-full h-full flex flex-col items-center justify-center bg-slate-900 border border-slate-800 relative z-10">
+                        <span class="material-symbols-rounded text-slate-700 text-6xl mb-4 animate-pulse" id="cameraIcon">router</span>
+                        <p class="text-slate-500 font-medium tracking-widest text-sm uppercase" id="cameraText">Hardware Standby</p>
+                    </div>
                     
                     <div id="scanningOverlay" class="absolute inset-0 z-30 pointer-events-none" style="display:none;">
                         <div class="absolute inset-8 border border-white/20 rounded-2xl flex items-center justify-center">
@@ -100,12 +102,12 @@
                 {% endif %}
 
                 <!-- Match Feedback -->
-                <div id="lastMatchCard" class="absolute bottom-6 right-6 w-72 z-40" style="display:none;">
-                    <div class="glass shadow-2xl p-5 rounded-2xl border-l-[6px] border-indigo-500 animate-slide-in">
+                <div id="lastMatchCard" class="absolute bottom-4 left-4 right-4 md:left-auto md:bottom-6 md:right-6 md:w-72 z-40" style="display:none;">
+                    <div class="glass shadow-2xl p-4 md:p-5 rounded-2xl border-l-[6px] border-indigo-500 animate-slide-in">
                         <div class="flex justify-between items-start gap-2 mb-3">
                             <div class="min-w-0">
-                                <h3 id="lastMatchName" class="font-black text-slate-900 text-sm truncate uppercase tracking-tight">Student Name</h3>
-                                <p id="lastMatchReg" class="text-[10px] text-slate-500 font-bold">REG: STUDENT_ID</p>
+                                <h3 id="lastMatchName" class="font-black text-slate-900 text-xs md:text-sm truncate uppercase tracking-tight">Student Name</h3>
+                                <p id="lastMatchReg" class="text-[9px] md:text-[10px] text-slate-500 font-bold">REG: STUDENT_ID</p>
                             </div>
                             <div id="lastMatchConf" class="bg-indigo-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full">98%</div>
                         </div>
@@ -217,80 +219,86 @@
 {% block scripts %}
 <script>
 {% if model_trained %}
-let videoStream = null;
 let recognitionActive = false;
-let recognitionInterval = null;
+let pollingInterval = null;
+let lastKnownLogTime = 0;
+const COOLDOWN_MS = 10000;
 const recentlyMarked = {};
-const COOLDOWN_MS = 10000; // 10s cooldown for visual feedback repeat
 
 async function startRecognition() {
     try {
-        videoStream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" }
+        const resp = await fetch('{{ url_for("toggle_camera_state") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ active: true })
         });
-        const videoEl = document.getElementById('videoFeed');
-        videoEl.srcObject = videoStream;
-        recognitionActive = true;
-
-        document.getElementById('startCamBtn').style.display = 'none';
-        document.getElementById('stopCamBtn').style.display = 'inline-flex';
-        document.getElementById('scanningOverlay').style.display = 'block';
-
-        addLog('Optical scanning activated', 'info');
         
-        videoEl.onloadedmetadata = () => {
-            recognitionInterval = setInterval(runRecognition, 1500);
-        };
+        if(resp.ok) {
+            recognitionActive = true;
+            document.getElementById('startCamBtn').style.display = 'none';
+            document.getElementById('stopCamBtn').style.display = 'inline-flex';
+            document.getElementById('scanningOverlay').style.display = 'block';
+            document.getElementById('cameraIcon').textContent = 'memory';
+            document.getElementById('cameraIcon').classList.add('text-indigo-500');
+            document.getElementById('cameraText').textContent = 'Remote Sensor Active';
+            
+            addLog('Edge Camera Activated via Cloud', 'info');
+            pollingInterval = setInterval(pollServerLogs, 1500);
+        }
     } catch (err) {
-        addLog('Sensor access fatal: ' + err.message, 'error');
+        addLog('Failed to sync with cloud: ' + err.message, 'error');
     }
 }
 
-function stopRecognition() {
-    if (videoStream) videoStream.getTracks().forEach(t => t.stop());
-    recognitionActive = false;
-    if (recognitionInterval) clearInterval(recognitionInterval);
-    
-    document.getElementById('startCamBtn').style.display = 'inline-flex';
-    document.getElementById('stopCamBtn').style.display = 'none';
-    document.getElementById('scanningOverlay').style.display = 'none';
-    document.getElementById('lastMatchCard').style.display = 'none';
-    addLog('Optical scanning terminated', 'info');
-}
-
-async function runRecognition() {
-    if (!recognitionActive) return;
-    const video = document.getElementById('videoFeed');
-    if(video.videoWidth === 0) return;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
-    const imageData = canvas.toDataURL('image/jpeg', 0.8);
-
+async function stopRecognition() {
     try {
-        const resp = await fetch('{{ url_for("recognize_frame") }}', {
+        await fetch('{{ url_for("toggle_camera_state") }}', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: imageData })
+            body: JSON.stringify({ active: false })
         });
+        
+        recognitionActive = false;
+        if (pollingInterval) clearInterval(pollingInterval);
+        
+        document.getElementById('startCamBtn').style.display = 'inline-flex';
+        document.getElementById('stopCamBtn').style.display = 'none';
+        document.getElementById('scanningOverlay').style.display = 'none';
+        document.getElementById('lastMatchCard').style.display = 'none';
+        
+        document.getElementById('cameraIcon').textContent = 'router';
+        document.getElementById('cameraIcon').classList.remove('text-indigo-500');
+        document.getElementById('cameraText').textContent = 'Hardware Standby';
+        
+        addLog('Edge Camera Terminated', 'info');
+    } catch (err) { }
+}
+
+async function pollServerLogs() {
+    if (!recognitionActive) return;
+    
+    try {
+        const resp = await fetch('{{ url_for("get_recent_attendance") }}');
         const data = await resp.json();
-
-        document.getElementById('faceCount').innerText = `${data.faces_count || 0} Entities detected`;
-
+        
         if (data.results && data.results.length > 0) {
             data.results.forEach(result => {
                 const now = Date.now();
                 const key = result.reg_num || 'unknown';
                 
-                if (key !== 'unknown' && now - (recentlyMarked[key] || 0) < COOLDOWN_MS) return;
-                if (key !== 'unknown') recentlyMarked[key] = now;
-
-                appendLogEntry(result);
-                if (result.success || result.reg_num) showMatchUI(result);
+                // Only react if this log entry is newer than what we've processed
+                if(result.marked_at > lastKnownLogTime) {
+                    lastKnownLogTime = result.marked_at;
+                    
+                    if (key !== 'unknown' && now - (recentlyMarked[key] || 0) < COOLDOWN_MS) return;
+                    if (key !== 'unknown') recentlyMarked[key] = now;
+                    
+                    appendLogEntry(result);
+                    showMatchUI(result);
+                }
             });
         }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error("Cloud tracking error: ", err); }
 }
 
 function showMatchUI(data) {
@@ -333,8 +341,10 @@ function appendLogEntry(result) {
                 ${isUnknown ? '!!' : result.name[0]}
             </div>
             <div>
-                <p class="text-xs font-black ${isUnknown ? 'text-rose-600' : 'text-slate-900'}">${result.name}</p>
-                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${time} • ${result.reg_num || 'ACCESS DENIED'}</p>
+                <p class="text-xs font-black ${isUnknown ? 'text-rose-600' : 'text-slate-900'}">
+                    ${isUnknown ? 'UNAUTHORIZED ACCESS ATTEMPT' : `Marked ${result.name} ${result.status} on ${time}`}
+                </p>
+                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${result.reg_num || 'ACCESS DENIED'}</p>
             </div>
         </div>
         <div class="text-right">

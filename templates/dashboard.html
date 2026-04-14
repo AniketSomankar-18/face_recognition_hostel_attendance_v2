@@ -164,15 +164,15 @@
             {% set total = summary.total if summary.total > 0 else 1 %}
             
             <div class="flex justify-center mb-10 relative z-10">
-                <div class="relative w-44 h-44">
-                    <svg class="w-full h-full transform -rotate-90">
+                <div class="relative w-32 h-32 sm:w-44 sm:h-44">
+                    <svg class="w-full h-full transform -rotate-90" viewBox="0 0 176 176">
                         <circle class="text-slate-800" cx="88" cy="88" fill="transparent" r="80" stroke="currentColor" stroke-width="14"></circle>
                         {% set dash_length = (summary.percentage / 100 * 502)|round(0) %}
                         <circle class="text-indigo-500" cx="88" cy="88" fill="transparent" r="80" stroke="currentColor" stroke-dasharray="{{ dash_length }} 502" stroke-linecap="round" stroke-width="14" style="transition: stroke-dasharray 1s ease-out;"></circle>
                     </svg>
                     <div class="absolute inset-0 flex flex-col items-center justify-center">
-                        <span class="text-4xl font-black">{{ summary.percentage }}%</span>
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Overall</span>
+                        <span class="text-2xl sm:text-4xl font-black">{{ summary.percentage }}%</span>
+                        <span class="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Overall</span>
                     </div>
                 </div>
             </div>
