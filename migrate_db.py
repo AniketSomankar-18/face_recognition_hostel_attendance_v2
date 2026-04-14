@@ -42,19 +42,16 @@ def migrate():
         with app.app_context():
             count = 0
             for row in rows:
-                # Convert sqlite row to dict
                 data = dict(row)
                 
-                # Special handling for boolean/datetime if needed
-                # SQLAlchemy usually handles this, but let's be safe
-                
-                # Check if record already exists (optional, but good for idempotency)
-                # For User, check by username
-                if table_name == 'users':
+                # Existence check to prevent UniqueViolation
+                if 'id' in data:
+                    if db.session.get(model_class, data['id']):
+                        continue
+                elif table_name == 'users' and 'username' in data:
                     if model_class.query.filter_by(username=data['username']).first():
                         continue
-                # For Student, check by registration_number
-                elif table_name == 'students':
+                elif table_name == 'students' and 'registration_number' in data:
                     if model_class.query.filter_by(registration_number=data['registration_number']).first():
                         continue
                 
@@ -86,7 +83,8 @@ def migrate():
         print("\n✓ Migration completed successfully!")
     except Exception as e:
         print(f"\n✗ Migration failed: {str(e)}")
-        db.session.rollback()
+        with app.app_context():
+            db.session.rollback()
     finally:
         sqlite_conn.close()
 
