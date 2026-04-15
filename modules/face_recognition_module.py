@@ -65,7 +65,10 @@ class FaceRecognitionModule:
                     data = pickle.load(f)
                     encodings = data.get('encodings', [])
                     names = data.get('names', [])
-                    
+
+                    # Always reset the index before loading to prevent stale
+                    # vectors accumulating across multiple reload calls
+                    self.index = VectorSearchIndex(dimension=128)
                     for enc, name in zip(encodings, names):
                         self.index.add(enc, {'reg_num': name})
                 print(f"[INFO] Loaded {len(names)} identity embeddings into Search Index.")
@@ -151,31 +154,26 @@ class FaceRecognitionModule:
 
         results = []
         for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
-            # KNN Voting: find top-5 neighbours, require majority (3/5) below threshold
+            # KNN: find top-5 neighbours
             K = 5
             matches = self.index.search(face_encoding, k=K, threshold=self.tolerance)
 
-            if len(matches) >= 3:
-                # Count votes per identity
-                votes = {}
+            if matches:
+                # Per-identity best distance — normalises for sample count imbalance
+                identity_best = {}
                 for m in matches:
                     rn = m['meta']['reg_num']
-                    votes[rn] = votes.get(rn, 0) + 1
+                    if rn not in identity_best or m['distance'] < identity_best[rn]:
+                        identity_best[rn] = m['distance']
 
-                winner = max(votes, key=votes.get)
-                vote_count = votes[winner]
-                required_votes = min(3, len(self.index.vectors))
+                sorted_ids = sorted(identity_best.items(), key=lambda x: x[1])
+                winner, best_dist = sorted_ids[0]
+                margin = (sorted_ids[1][1] - best_dist) if len(sorted_ids) >= 2 else 1.0
 
-                if vote_count >= required_votes:
-                    winner_dists = [m['distance'] for m in matches if m['meta']['reg_num'] == winner]
-                    avg_dist = sum(winner_dists) / len(winner_dists)
-                    confidence = round((1 - avg_dist) * 100, 2)
-                    res = {
-                        'name': winner,
-                        'reg_num': winner,
-                        'confidence': confidence,
-                        'location': (top*2, right*2, bottom*2, left*2)
-                    }
+                if best_dist < self.tolerance and margin > 0.05:
+                    confidence = round((1 - best_dist) * 100, 2)
+                    res = {'name': winner, 'reg_num': winner, 'confidence': confidence,
+                           'location': (top*2, right*2, bottom*2, left*2)}
                 else:
                     res = {'name': "Unknown", 'reg_num': None, 'confidence': 0.0,
                            'location': (top*2, right*2, bottom*2, left*2)}

@@ -320,32 +320,34 @@ def recognize_frame(frame, known_encodings, known_names, frame_count=0):
         top_k_names = [known_names[idx] for idx in top_k_indices]
         top_k_distances = [distances[idx] for idx in top_k_indices]
         
-        # 2. Count votes per identity
-        votes = {}
-        for name in top_k_names:
-            votes[name] = votes.get(name, 0) + 1
-        
-        # 3. Find winner
-        winner = max(votes, key=votes.get)
-        vote_count = votes[winner]
-        
-        # 4. Filter matches by distance and majority
-        # Average distance of the winner's samples in the top K
-        winner_distances = [dist for name, dist in zip(top_k_names, top_k_distances) if name == winner]
-        avg_dist = sum(winner_distances) / len(winner_distances)
+        # 2. Per-identity vote = best (minimum) distance among their top-K appearances.
+        # This prevents students with more samples from dominating the vote pool —
+        # each identity competes on their single closest match, not sample count.
+        identity_best_dist = {}
+        for name, dist in zip(top_k_names, top_k_distances):
+            if name not in identity_best_dist or dist < identity_best_dist[name]:
+                identity_best_dist[name] = dist
+
+        # 3. Winner = identity with the smallest best distance (closest match)
+        winner = min(identity_best_dist, key=identity_best_dist.get)
+        avg_dist = identity_best_dist[winner]
         confidence = round((1 - avg_dist) * 100, 2)
-        
-        # Success criteria:
-        # - Average distance below threshold
-        # - At least 3 out of 5 votes (or majority if K < 5)
-        required_votes = min(3, len(known_encodings))
-        
-        if avg_dist < RECOGNITION_TOLERANCE and vote_count >= required_votes:
+
+        # 4. Success criteria: winner's best distance must be below threshold
+        # AND must be meaningfully closer than the second-best identity (margin guard)
+        sorted_identities = sorted(identity_best_dist.items(), key=lambda x: x[1])
+        if len(sorted_identities) >= 2:
+            second_best_dist = sorted_identities[1][1]
+            margin = second_best_dist - avg_dist
+        else:
+            margin = 1.0  # only one identity in model, no competition
+
+        if avg_dist < RECOGNITION_TOLERANCE and margin > 0.05:
             results.append((winner, confidence))
-            print(f"[VOTE] {winner} wins ({vote_count}/{K} votes, Dist: {avg_dist:.2f})")
+            print(f"[VOTE] {winner} wins (Dist: {avg_dist:.3f}, Margin: {margin:.3f})")
         else:
             if frame_count % 5 == 0:
-                print(f"[DEBUG] Uncertain: {winner} ({vote_count}/{K} votes, Dist: {avg_dist:.2f})")
+                print(f"[DEBUG] Uncertain: {winner} (Dist: {avg_dist:.3f}, Margin: {margin:.3f})")
 
     # Diagnostic: Print the 'Radar' distance for every student identity
     if frame_count % 10 == 0:
@@ -414,8 +416,13 @@ def run_recognition_task():
     print("   LIVE ATTENDANCE TASK STARTED")
     print("=" * 60)
     
+    # Always sync encodings on startup to guarantee the latest model is used.
+    # A stale local encodings.pkl would silently run on an outdated model.
+    sync_encodings()
     if not os.path.exists(ENCODINGS_FILE):
-        sync_encodings()
+        print("[ERROR] Encodings sync failed and no local copy exists. Cancelling.")
+        report_task_complete()
+        return
 
     known_encodings, known_names = load_encodings()
     if not known_encodings:
