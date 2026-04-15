@@ -21,6 +21,7 @@ from modules.reports import generate_excel_report, generate_absent_pdf
 from penalty_system import finalize_attendance, get_penalty_summary
 from email_service import mail, init_mail
 from supabase_storage import upload_encodings, download_encodings, get_encodings_url, upload_frame
+from modules.cloud_sync import sync_local_dataset_to_cloud
 
 # ─── App Setup ────────────────────────────────────────────────────────────────
 app = Flask(__name__)
@@ -377,7 +378,11 @@ def capture_frame():
         existing = len([f for f in os.listdir(save_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))])
 
         if existing >= Config.FACE_IMAGES_REQUIRED:
-            return jsonify({'success': False, 'message': 'Enough images captured', 'count': existing})
+            # Force a re-upload of one frame to Supabase to verify sync
+            # This helps users who have local files but empty cloud buckets
+            with open(os.path.join(save_dir, "1.jpg"), 'rb') as f:
+                upload_frame(reg_num, "1.jpg", f.read())
+            return jsonify({'success': False, 'message': 'Enough images captured locally, but verified cloud sync for frame 1.', 'count': existing})
 
         # Save the full frame — face validation happens at training time
         img_path = os.path.join(save_dir, f"{existing + 1}.jpg")
@@ -902,6 +907,16 @@ def init_database():
             print("[INFO] Default warden created.")
 
 init_database()
+
+
+@app.route('/admin/sync_cloud')
+@login_required
+def admin_sync_cloud():
+    if current_user.role != 'rector':
+        return "Unauthorized", 403
+    
+    result = sync_local_dataset_to_cloud()
+    return jsonify(result)
 
 
 if __name__ == '__main__':
