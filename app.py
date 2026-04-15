@@ -1020,9 +1020,11 @@ def purge_dataset():
 
     db.session.commit()
 
-    # Wipe encodings.pkl and in-memory index
+    # Wipe encodings.pkl locally, from Supabase, and in-memory index
     if os.path.exists(Config.ENCODINGS_FILE):
         os.remove(Config.ENCODINGS_FILE)
+    from supabase_storage import delete_encodings
+    delete_encodings()
     face_module.index = face_module.index.__class__()
 
     return jsonify({
@@ -1037,17 +1039,20 @@ def purge_dataset():
 @login_required
 def reset_encodings():
     """
-    Delete encodings.pkl and reset the in-memory index.
+    Delete encodings.pkl locally, from Supabase, and reset the in-memory index.
     Use after fixing the dataset, then trigger retrain from the dashboard.
     """
     if current_user.role != 'rector':
         return "Unauthorized", 403
 
+    from supabase_storage import delete_encodings
     try:
         if os.path.exists(Config.ENCODINGS_FILE):
             os.remove(Config.ENCODINGS_FILE)
+        # Also delete from Supabase so a Render restart can't reload the stale model
+        delete_encodings()
         face_module.index = face_module.index.__class__()
-        return jsonify({'success': True, 'message': 'encodings.pkl deleted. Trigger retrain from dashboard.'})
+        return jsonify({'success': True, 'message': 'encodings.pkl deleted locally and from Supabase. Trigger retrain from dashboard.'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 

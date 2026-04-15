@@ -70,7 +70,19 @@ def download_encodings(local_path: str) -> bool:
         return False
 
 
-def get_encodings_url() -> str:
+def delete_encodings() -> tuple[bool, str]:
+    """Delete encodings.pkl from Supabase Storage so stale models can't be re-downloaded."""
+    try:
+        client = _client()
+        client.storage.from_(ENCODINGS_BUCKET).remove([ENCODINGS_OBJECT])
+        print(f"[STORAGE] encodings.pkl deleted from Supabase.")
+        return True, "Deleted"
+    except Exception as e:
+        err = str(e)
+        print(f"[STORAGE] Delete encodings failed: {err}")
+        return False, err
+
+
     """Get a signed URL for the Pi to download encodings directly."""
     try:
         client = _client()
