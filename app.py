@@ -65,7 +65,10 @@ def background_train(app_context):
             success, message, count = face_module.train_model()
             if success:
                 # Persist encodings to Supabase Storage so they survive Render deploys
-                upload_encodings(Config.ENCODINGS_FILE)
+                up_success, up_msg = upload_encodings(Config.ENCODINGS_FILE)
+                if not up_success:
+                    print(f"[TRAIN] FAILED to push encodings to cloud: {up_msg}")
+                    last_training_error = up_msg
             else:
                 last_training_error = message
         except Exception as e:
@@ -105,9 +108,9 @@ def load_user(user_id):
 def enforce_auth():
     """Fail-safe: Redirect unauthenticated users to login for all restricted routes."""
     # List of endpoints allowed without login
-    # Added camera APIs to whitelist for Raspberry Pi client
     whitelist = ['login', 'static', 'get_camera_state', 'recognize_frame',
-                 'pi_sync_encodings', 'pi_mark_present', 'pi_upload_encodings']
+                 'pi_sync_encodings', 'pi_mark_present', 'pi_upload_encodings',
+                 'pi_task_complete', 'get_encodings_url']
     if not current_user.is_authenticated and request.endpoint not in whitelist:
         if request.endpoint:
             return redirect(url_for('login'))
@@ -380,9 +383,13 @@ def capture_frame():
         if existing >= Config.FACE_IMAGES_REQUIRED:
             # Force a re-upload of one frame to Supabase to verify sync
             # This helps users who have local files but empty cloud buckets
-            with open(os.path.join(save_dir, "1.jpg"), 'rb') as f:
-                upload_frame(reg_num, "1.jpg", f.read())
-            return jsonify({'success': False, 'message': 'Enough images captured locally, but verified cloud sync for frame 1.', 'count': existing})
+            first_frame = os.path.join(save_dir, "1.jpg")
+            if os.path.exists(first_frame):
+                with open(first_frame, 'rb') as f:
+                    up_success, up_msg = upload_frame(reg_num, "1.jpg", f.read())
+                    if not up_success:
+                        return jsonify({'success': False, 'message': f'Cloud sync check failed: {up_msg}'})
+            return jsonify({'success': False, 'message': 'Enough images captured locally.', 'count': existing})
 
         # Save the full frame — face validation happens at training time
         img_path = os.path.join(save_dir, f"{existing + 1}.jpg")
@@ -390,8 +397,9 @@ def capture_frame():
 
         # Upload frame to Supabase Storage so Pi can download for training
         with open(img_path, 'rb') as f:
-            if not upload_frame(reg_num, f"{existing + 1}.jpg", f.read()):
-                return jsonify({'success': False, 'message': 'Cloud storage upload failed. Please check your Supabase API keys (sb_secret_...) and bucket permissions.'})
+            up_success, up_msg = upload_frame(reg_num, f"{existing + 1}.jpg", f.read())
+            if not up_success:
+                return jsonify({'success': False, 'message': f'Cloud Storage Error: {up_msg}. Please check your Service Role Key and Bucket Permissions (Must have INSERT policy).'})
 
         new_count = existing + 1
         student.face_samples_count = new_count
@@ -634,8 +642,8 @@ import time
 # ─── IoT Camera Edge State ────────────────────────────────────────────────────
 CAMERA_STATE_FILE = os.path.join('scratch', 'camera_state.json')
 
-@app.route('/api/camera/state', methods=['GET'])
 def _get_camera_state_data():
+    """ Internal helper to load state from disk. """
     try:
         if os.path.exists(CAMERA_STATE_FILE):
             with open(CAMERA_STATE_FILE, 'r') as f:
@@ -903,8 +911,15 @@ def init_database():
             warden = User(username='warden', role='warden', hostel_code='N')
             warden.set_password('warden123')
             db.session.add(warden)
-            db.session.commit()
             print("[INFO] Default warden created.")
+            
+        if not User.query.filter_by(username='rector').first():
+            rector = User(username='rector', role='rector', hostel_code=None)
+            rector.set_password('rector123')
+            db.session.add(rector)
+            print("[INFO] Default rector created.")
+
+        db.session.commit()
 
 init_database()
 

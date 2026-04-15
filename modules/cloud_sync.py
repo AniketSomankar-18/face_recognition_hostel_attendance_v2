@@ -27,7 +27,8 @@ def sync_local_dataset_to_cloud():
         for fname in local_files:
             file_path = os.path.join(local_path, fname)
             with open(file_path, 'rb') as f:
-                if upload_frame(reg_num, fname, f.read()):
+                up_success, up_msg = upload_frame(reg_num, fname, f.read())
+                if up_success:
                     synced_for_student += 1
         
         total_synced += synced_for_student

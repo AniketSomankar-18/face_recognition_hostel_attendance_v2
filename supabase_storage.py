@@ -28,10 +28,12 @@ def _client():
 
 # ─── Encodings ────────────────────────────────────────────────────────────────
 
-def upload_encodings(local_path: str) -> bool:
-    """Upload encodings.pkl to Supabase Storage."""
+def upload_encodings(local_path: str) -> tuple[bool, str]:
+    """Upload encodings.pkl to Supabase Storage. Returns (success, error_msg)"""
     try:
         client = _client()
+        if not os.path.exists(local_path):
+            return False, "Local encodings file not found"
         with open(local_path, 'rb') as f:
             data = f.read()
         client.storage.from_(ENCODINGS_BUCKET).upload(
@@ -40,10 +42,11 @@ def upload_encodings(local_path: str) -> bool:
             file_options={"content-type": "application/octet-stream", "upsert": "true"}
         )
         print(f"[STORAGE] encodings.pkl uploaded ({len(data)/1024:.1f} KB)")
-        return True
+        return True, "Success"
     except Exception as e:
-        print(f"[STORAGE] Upload encodings failed: {e}")
-        return False
+        err = str(e)
+        print(f"[STORAGE] Upload encodings failed: {err}")
+        return False, err
 
 
 def download_encodings(local_path: str) -> bool:
@@ -74,8 +77,8 @@ def get_encodings_url() -> str:
 
 # ─── Dataset Frames ───────────────────────────────────────────────────────────
 
-def upload_frame(reg_num: str, filename: str, image_bytes: bytes) -> bool:
-    """Upload a single captured frame to Supabase Storage dataset bucket."""
+def upload_frame(reg_num: str, filename: str, image_bytes: bytes) -> tuple[bool, str]:
+    """Upload a single captured frame to Supabase dataset bucket. Returns (success, error_msg)"""
     try:
         client = _client()
         object_path = f"{reg_num}/{filename}"
@@ -85,10 +88,11 @@ def upload_frame(reg_num: str, filename: str, image_bytes: bytes) -> bool:
             file_options={"content-type": "image/jpeg", "upsert": "true"}
         )
         print(f"[STORAGE] Frame uploaded for {reg_num}: {object_path}")
-        return True
+        return True, "Success"
     except Exception as e:
-        print(f"[STORAGE] upload_frame failed for {reg_num}: {e}")
-        return False
+        err = str(e)
+        print(f"[STORAGE] upload_frame failed for {reg_num}: {err}")
+        return False, err
 
 
 def list_dataset_students() -> list:
