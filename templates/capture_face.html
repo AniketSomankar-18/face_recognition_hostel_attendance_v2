@@ -174,9 +174,9 @@
                         imagesCaptured++;
                         progressText.textContent = imagesCaptured;
                         progressBar.style.width = `${(imagesCaptured / requiredImages) * 100}%`;
+                        statusMsg.textContent = `Saved frame ${imagesCaptured} of ${requiredImages}...`;
                     } else {
-                        console.error('Failed to save frame', data.error);
-                        // Optional: show a flash if it fails to find a face
+                        console.warn('Frame skipped:', data.message);
                     }
                 } catch (err) {
                     console.error('Upload Error', err);

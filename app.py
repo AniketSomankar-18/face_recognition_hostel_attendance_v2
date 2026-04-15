@@ -369,29 +369,25 @@ def capture_frame():
         np_arr = np.frombuffer(img_bytes, np.uint8)
         frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         if frame is None:
-            return jsonify({'success': False, 'message': 'Invalid image'})
-        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        faces = face_cascade.detectMultiScale(gray, 1.3, 5, minSize=(80, 80))
-        if len(faces) == 0:
-            return jsonify({'success': False, 'message': 'No face detected', 'count': 0})
+            return jsonify({'success': False, 'message': 'Invalid image data'})
+
         save_dir = os.path.join(Config.DATASET_DIR, reg_num)
         os.makedirs(save_dir, exist_ok=True)
         existing = len([f for f in os.listdir(save_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))])
+
         if existing >= Config.FACE_IMAGES_REQUIRED:
             return jsonify({'success': False, 'message': 'Enough images captured', 'count': existing})
-        x, y, w, h = faces[0]
-        face_img = frame[y:y+h, x:x+w]
-        cv2.imwrite(os.path.join(save_dir, f"{existing + 1}.jpg"), face_img)
-        
+
+        # Save the full frame — face validation happens at training time
+        cv2.imwrite(os.path.join(save_dir, f"{existing + 1}.jpg"), frame)
+
         new_count = existing + 1
         student.face_samples_count = new_count
-        
         if new_count >= Config.FACE_IMAGES_REQUIRED:
             student.face_encoded = True
-            
         db.session.commit()
-        return jsonify({'success': True, 'message': f'Image {new_count} captured',
+
+        return jsonify({'success': True, 'message': f'Frame {new_count} saved',
                         'count': new_count, 'required': Config.FACE_IMAGES_REQUIRED,
                         'complete': new_count >= Config.FACE_IMAGES_REQUIRED})
     except Exception as e:
