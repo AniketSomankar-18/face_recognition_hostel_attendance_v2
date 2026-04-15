@@ -4,124 +4,121 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login – Hostel Excellence</title>
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <!-- Google Material Symbols -->
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
-
-    <!-- Tailwind CDN (required for utility classes) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
-                    colors: {
-                        primary: '#4f46e5',
-                        'primary-container': '#eef2ff',
-                        surface: '#f8fafc',
-                        'outline-variant': '#e2e8f0',
-                        'on-surface': '#0f172a',
-                    }
-                }
-            }
-        }
-    </script>
-
-    <!-- Production CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; }
         .material-symbols-rounded {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
+        input:-webkit-autofill {
+            -webkit-box-shadow: 0 0 0 30px #f8fafc inset !important;
+        }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4 bg-slate-100">
+<body style="min-height:100vh; background:#f1f5f9; display:flex; align-items:center; justify-content:center; padding:1rem;">
 
-<div class="w-full max-w-[1000px] min-h-[560px] bg-white rounded-[2rem] shadow-xl overflow-hidden flex flex-col md:flex-row relative">
-    
-    <!-- Decorative Accents -->
-    <div class="absolute -top-32 -left-32 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="absolute -bottom-32 -right-32 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
+<div style="width:100%; max-width:960px; min-height:540px; background:#fff; border-radius:1.5rem; box-shadow:0 20px 60px rgba(0,0,0,0.12); overflow:hidden; display:flex;">
 
     <!-- Left: Branding -->
-    <div class="hidden md:flex flex-1 flex-col items-center justify-center text-center p-12 relative overflow-hidden bg-gradient-to-br from-[#00236f] to-[#1e3a8a]">
-        <!-- Abstract Shapes -->
-        <div class="absolute top-[-20%] right-[-10%] w-[300px] h-[300px] rounded-full border-[40px] border-white/5 pointer-events-none"></div>
-        <div class="absolute bottom-[-10%] left-[-10%] w-[200px] h-[200px] rounded-full bg-white/5 pointer-events-none"></div>
+    <div style="flex:1; background:linear-gradient(135deg,#00236f,#1e3a8a); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:3rem; position:relative; overflow:hidden; min-width:280px;">
+        <!-- Decorative circles -->
+        <div style="position:absolute;top:-60px;right:-60px;width:220px;height:220px;border-radius:50%;border:40px solid rgba(255,255,255,0.05);"></div>
+        <div style="position:absolute;bottom:-40px;left:-40px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,0.05);"></div>
 
-        <div class="relative z-10 flex flex-col items-center">
-            <div class="w-32 h-32 rounded-full bg-white/10 border-4 border-white/20 backdrop-blur-sm flex items-center justify-center mb-6 shadow-2xl p-4">
-                <img src="/static/img/logo.png" alt="Logo" class="w-full h-full object-contain drop-shadow-md brightness-0 invert opacity-90" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'white\'><path d=\'M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z\'/></svg>'">
+        <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;text-align:center;">
+            <div style="width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,0.1);border:3px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem;">
+                <img src="/static/img/logo.png" alt="Logo"
+                     style="width:70px;height:70px;object-fit:contain;filter:brightness(0) invert(1);opacity:0.9;"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+                <span class="material-symbols-rounded" style="display:none;color:white;font-size:2.5rem;">domain</span>
             </div>
-            <h1 class="text-3xl font-black text-white tracking-tight mb-2">Hostel Excellence</h1>
-            <p class="text-primary-container font-medium text-sm tracking-widest uppercase">Institution Attendance System</p>
-            
-            <div class="w-12 h-1 bg-white/20 rounded-full my-6"></div>
-            
-            <p class="text-white/70 text-sm leading-relaxed max-w-[280px]">
+            <h1 style="font-size:1.75rem;font-weight:900;color:#fff;letter-spacing:-0.02em;margin-bottom:0.5rem;">Hostel Excellence</h1>
+            <p style="font-size:0.7rem;color:rgba(255,255,255,0.6);font-weight:700;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:1.5rem;">Institution Attendance System</p>
+            <div style="width:40px;height:3px;background:rgba(255,255,255,0.2);border-radius:99px;margin-bottom:1.5rem;"></div>
+            <p style="font-size:0.85rem;color:rgba(255,255,255,0.65);line-height:1.6;max-width:240px;">
                 AI-powered live face recognition securing seamless residence management.
             </p>
         </div>
     </div>
 
     <!-- Right: Login Form -->
-    <div class="w-full md:w-[440px] p-8 sm:p-12 flex flex-col justify-center relative z-10 bg-white">
-        
-        <div class="mb-10">
-            <h2 class="text-2xl font-black text-blue-900 mb-1">Administrative Login</h2>
-            <p class="text-sm font-medium text-slate-500">Enter your credentials to access the portal.</p>
+    <div style="width:420px;flex-shrink:0;padding:3rem;display:flex;flex-direction:column;justify-content:center;background:#fff;">
+
+        <div style="margin-bottom:2rem;">
+            <h2 style="font-size:1.5rem;font-weight:900;color:#1e3a8a;margin-bottom:0.25rem;">Administrative Login</h2>
+            <p style="font-size:0.875rem;color:#64748b;font-weight:500;">Enter your credentials to access the portal.</p>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            <div class="mb-6 space-y-2">
-                {% for category, message in messages %}
-                {% set alert_color = 'bg-rose-50 text-rose-600 border-rose-500/20' if category == 'danger' or category == 'error' else 'bg-emerald-50 text-emerald-800 border-emerald-200' %}
-                <div class="flex items-start gap-2 p-3 rounded-xl border {{ alert_color }} text-sm font-bold shadow-sm">
-                    <span class="material-symbols-rounded text-[18px]">info</span>
-                    {{ message }}
-                </div>
-                {% endfor %}
+        <div style="margin-bottom:1.25rem;">
+            {% for category, message in messages %}
+            {% if category in ['danger', 'error'] %}
+            <div style="display:flex;align-items:center;gap:0.5rem;padding:0.75rem 1rem;border-radius:0.75rem;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-size:0.875rem;font-weight:600;">
+                <span class="material-symbols-rounded" style="font-size:1.1rem;">error</span>{{ message }}
             </div>
+            {% else %}
+            <div style="display:flex;align-items:center;gap:0.5rem;padding:0.75rem 1rem;border-radius:0.75rem;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;font-size:0.875rem;font-weight:600;">
+                <span class="material-symbols-rounded" style="font-size:1.1rem;">check_circle</span>{{ message }}
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
         {% endif %}
         {% endwith %}
 
-        <form method="POST" class="space-y-5">
+        <form method="POST" style="display:flex;flex-direction:column;gap:1.25rem;">
+            <!-- Username -->
             <div>
-                <label class="block text-[10px] uppercase tracking-widest font-bold text-slate-500 mb-2">Username</label>
-                <div class="relative">
-                    <span class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">person</span>
-                    <input type="text" name="username" value="warden" placeholder="Enter given username" class="w-full bg-surface border border-outline-variant/50 focus:border-primary focus:ring-2 focus:ring-primary/10 rounded-xl pl-10 pr-4 py-3 text-sm font-medium text-on-surface transition-all placeholder:text-slate-400" required>
+                <label style="display:block;font-size:0.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">Username</label>
+                <div style="position:relative;">
+                    <span class="material-symbols-rounded" style="position:absolute;left:0.875rem;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:1.1rem;">person</span>
+                    <input type="text" name="username" placeholder="Enter username" required
+                           style="width:100%;padding:0.75rem 1rem 0.75rem 2.75rem;border:1.5px solid #e2e8f0;border-radius:0.75rem;font-size:0.875rem;font-weight:500;color:#0f172a;background:#f8fafc;outline:none;transition:border-color 0.2s,box-shadow 0.2s;font-family:inherit;"
+                           onfocus="this.style.borderColor='#4f46e5';this.style.boxShadow='0 0 0 3px rgba(79,70,229,0.1)';this.style.background='#fff'"
+                           onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none';this.style.background='#f8fafc'">
                 </div>
             </div>
 
+            <!-- Password -->
             <div>
-                <label class="block text-[10px] uppercase tracking-widest font-bold text-slate-500 mb-2">Password</label>
-                <div class="relative">
-                    <span class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">lock</span>
-                    <input type="password" name="password" id="passwordInput" value="warden123" placeholder="Enter security key" class="w-full bg-surface border border-outline-variant/50 focus:border-primary focus:ring-2 focus:ring-primary/10 rounded-xl pl-10 pr-10 py-3 text-sm font-medium text-on-surface transition-all placeholder:text-slate-400" required>
-                    <button type="button" onclick="togglePassword()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors focus:outline-none">
-                        <span class="material-symbols-rounded text-[18px]" id="eyeIcon">visibility</span>
+                <label style="display:block;font-size:0.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">Password</label>
+                <div style="position:relative;">
+                    <span class="material-symbols-rounded" style="position:absolute;left:0.875rem;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:1.1rem;">lock</span>
+                    <input type="password" name="password" id="passwordInput" placeholder="Enter password" required
+                           style="width:100%;padding:0.75rem 3rem 0.75rem 2.75rem;border:1.5px solid #e2e8f0;border-radius:0.75rem;font-size:0.875rem;font-weight:500;color:#0f172a;background:#f8fafc;outline:none;transition:border-color 0.2s,box-shadow 0.2s;font-family:inherit;"
+                           onfocus="this.style.borderColor='#4f46e5';this.style.boxShadow='0 0 0 3px rgba(79,70,229,0.1)';this.style.background='#fff'"
+                           onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none';this.style.background='#f8fafc'">
+                    <button type="button" onclick="togglePassword()"
+                            style="position:absolute;right:0.875rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94a3b8;display:flex;align-items:center;">
+                        <span class="material-symbols-rounded" id="eyeIcon" style="font-size:1.1rem;">visibility</span>
                     </button>
                 </div>
             </div>
 
-            <button type="submit" class="w-full mt-4 bg-primary hover:bg-[#001c5a] text-white font-bold py-3.5 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 group">
+            <!-- Submit -->
+            <button type="submit"
+                    style="width:100%;padding:0.875rem;background:#4f46e5;color:#fff;border:none;border-radius:0.75rem;font-size:0.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;font-family:inherit;transition:background 0.2s,transform 0.1s;margin-top:0.25rem;"
+                    onmouseover="this.style.background='#4338ca'"
+                    onmouseout="this.style.background='#4f46e5'"
+                    onmousedown="this.style.transform='scale(0.98)'"
+                    onmouseup="this.style.transform='scale(1)'">
                 Access Dashboard
-                <span class="material-symbols-rounded text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                <span class="material-symbols-rounded" style="font-size:1rem;">arrow_forward</span>
             </button>
         </form>
 
-        <div class="mt-8 text-center bg-surface-container-low py-3 rounded-lg border border-outline-variant/30">
-            <p class="text-[11px] font-bold text-slate-500">
+        <div style="margin-top:1.5rem;text-align:center;background:#f8fafc;padding:0.75rem 1rem;border-radius:0.75rem;border:1px solid #e2e8f0;">
+            <p style="font-size:0.75rem;color:#64748b;font-weight:600;">
                 Demo Credentials:
-                <code class="px-1.5 py-0.5 bg-white text-slate-700 rounded shadow-sm border border-outline-variant/20 ml-1">warden</code>
+                <code style="background:#fff;padding:0.15rem 0.4rem;border-radius:0.375rem;border:1px solid #e2e8f0;color:#334155;margin:0 0.25rem;">warden</code>
                 /
-                <code class="px-1.5 py-0.5 bg-white text-slate-700 rounded shadow-sm border border-outline-variant/20">warden123</code>
+                <code style="background:#fff;padding:0.15rem 0.4rem;border-radius:0.375rem;border:1px solid #e2e8f0;color:#334155;margin-left:0.25rem;">warden123</code>
             </p>
         </div>
     </div>
@@ -140,6 +137,5 @@
         }
     }
 </script>
-
 </body>
 </html>
