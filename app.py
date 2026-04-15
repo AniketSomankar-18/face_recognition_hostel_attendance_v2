@@ -470,32 +470,22 @@ def pi_upload_encodings():
 @app.route('/train', methods=['POST'])
 @login_required
 def train_model():
-    global is_training, last_training_error
-
-    if is_training:
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': False, 'message': 'Already training'})
-        flash('AI Engine is already training. Please wait...', 'warning')
-        return redirect(url_for('dashboard'))
-
-    is_training = True
-    last_training_error = None
-
-    thread = threading.Thread(target=background_train, args=(app.app_context(),))
-    thread.start()
-
+    # We now trigger the Pi to train remotely
+    _save_camera_state_data(active=False, command='train')
+    
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify({'success': True, 'message': 'Training started'})
+        return jsonify({'success': True, 'message': 'Command sent to Raspberry Pi'})
 
-    flash('Identity learning started in background. The system will be ready in a few moments.', 'info')
+    flash('Remote training command sent to Raspberry Pi.', 'info')
     return redirect(url_for('dashboard'))
 
 @app.route('/api/training/status')
 @login_required
 def training_status():
+    state = _get_camera_state_data()
     return jsonify({
-        'is_training': is_training,
-        'error': last_training_error
+        'is_training': state.get('command') == 'train',
+        'error': None
     })
 
 
@@ -639,23 +629,38 @@ import time
 CAMERA_STATE_FILE = os.path.join('scratch', 'camera_state.json')
 
 @app.route('/api/camera/state', methods=['GET'])
-def get_camera_state():
+def _get_camera_state_data():
     try:
-        with open(CAMERA_STATE_FILE, 'r') as f:
-            data = json.load(f)
-            return jsonify(data)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return jsonify({'active': False})
+        if os.path.exists(CAMERA_STATE_FILE):
+            with open(CAMERA_STATE_FILE, 'r') as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {'active': False, 'command': 'idle', 'timestamp': time.time()}
+
+def _save_camera_state_data(active, command):
+    os.makedirs(os.path.dirname(CAMERA_STATE_FILE), exist_ok=True)
+    with open(CAMERA_STATE_FILE, 'w') as f:
+        json.dump({'active': active, 'command': command, 'timestamp': time.time()}, f)
+
+@app.route('/api/camera/state', methods=['GET'])
+def get_camera_state():
+    return jsonify(_get_camera_state_data())
 
 @app.route('/api/camera/toggle', methods=['POST'])
 @login_required
 def toggle_camera_state():
     data = request.get_json()
     active = data.get('active', False)
-    os.makedirs(os.path.dirname(CAMERA_STATE_FILE), exist_ok=True)
-    with open(CAMERA_STATE_FILE, 'w') as f:
-        json.dump({'active': active, 'timestamp': time.time()}, f)
-    return jsonify({'success': True, 'active': active})
+    command = 'recognize' if active else 'idle'
+    _save_camera_state_data(active, command)
+    return jsonify({'success': True, 'active': active, 'command': command})
+
+@app.route('/api/pi/task_complete', methods=['POST'])
+def pi_task_complete():
+    """ Called by Pi to reset state to idle after training/stopping. """
+    _save_camera_state_data(active=False, command='idle')
+    return jsonify({'success': True})
 
 @app.route('/api/attendance/recent', methods=['GET'])
 @login_required

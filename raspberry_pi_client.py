@@ -11,6 +11,10 @@ import time
 import os
 import sys
 import numpy as np
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 SERVER_URL          = os.environ.get('SERVER_URL', 'https://sggs-hostel.onrender.com')
 ENCODINGS_FILE      = 'encodings.pkl'
@@ -249,57 +253,74 @@ def recognize_frame(frame, known_encodings, known_names):
     return results
 
 
-def mark_present(reg_num, confidence):
+def report_task_complete():
     try:
-        resp = requests.post(f"{SERVER_URL}/api/pi/mark_present",
-                             json={'reg_num': reg_num, 'confidence': confidence},
-                             timeout=8)
-        if resp.status_code == 200:
-            return resp.json()
-    except Exception as e:
-        print(f"[NETWORK] mark_present failed: {e}")
-    return {'success': False}
+        requests.post(f"{SERVER_URL}/api/pi/task_complete", timeout=5)
+    except Exception:
+        pass
 
+# ─── Tasks ────────────────────────────────────────────────────────────────────
 
-# ─── Main ─────────────────────────────────────────────────────────────────────
-
-def main():
+def run_training_task():
+    print("\n" + "=" * 60)
+    print("   REMOTE TRAINING TASK STARTED")
     print("=" * 60)
-    print("   HOSTEL ATTENDANCE — EDGE RECOGNITION NODE")
+    dataset_dir    = os.path.join(os.path.dirname(__file__), 'dataset')
+    encodings_file = os.path.join(os.path.dirname(__file__), 'models', 'encodings.pkl')
+    os.makedirs(dataset_dir, exist_ok=True)
+    os.makedirs(os.path.dirname(encodings_file), exist_ok=True)
+    
+    success = train_local(dataset_dir, encodings_file)
+    if success:
+        print("[TRAIN] Remote training successful.")
+        report_task_complete()
+    else:
+        print("[TRAIN] Remote training failed.")
+
+def run_recognition_task():
+    print("\n" + "=" * 60)
+    print("   LIVE ATTENDANCE TASK STARTED")
     print("=" * 60)
-
-    if not FACE_RECOGNITION_AVAILABLE:
-        return
-
-    # Sync encodings on startup (force re-sync if --sync flag passed)
-    force_sync = '--sync' in sys.argv
-    if force_sync or not os.path.exists(ENCODINGS_FILE):
+    
+    if not os.path.exists(ENCODINGS_FILE):
         sync_encodings()
 
     known_encodings, known_names = load_encodings()
     if not known_encodings:
-        print("[ERROR] No encodings. Run: python raspberry_pi_client.py train")
+        print("[ERROR] No encodings found. Cancelling recognition.")
+        report_task_complete()
         return
 
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         print("[HARDWARE] Camera not found.")
+        report_task_complete()
         return
 
-    print(f"\n[READY] Recognizing {len(known_names)} enrolled students.\n")
+    print(f"\n[READY] Recognizing {len(known_names)} students.\n")
     recently_marked = {}
     frame_count = 0
 
     try:
         while True:
+            # Poll server state periodically to see if we should stop
+            if frame_count % 30 == 0:
+                try:
+                    resp = requests.get(f"{SERVER_URL}/api/camera/state", timeout=3)
+                    state = resp.json()
+                    if not state.get('active'):
+                        print("[STOP] Received stop command from server.")
+                        break
+                except Exception:
+                    pass
+
             ret, frame = cap.read()
             if not ret:
-                time.sleep(1)
+                time.sleep(0.1)
                 continue
 
             frame_count += 1
             if frame_count % 5 != 0:
-                time.sleep(0.05)
                 continue
 
             for reg_num, confidence in recognize_frame(frame, known_encodings, known_names):
@@ -312,23 +333,61 @@ def main():
                     print(f"[MARKED] {reg_num} — {result.get('direction','IN')} ({confidence}%)")
                 else:
                     print(f"[SKIP]   {reg_num}: {result.get('message','failed')}")
+            
+            # Tiny sleep to reduce CPU load
+            time.sleep(0.01)
 
-    except KeyboardInterrupt:
-        print("\n[STOP] Shutting down.")
+    except Exception as e:
+        print(f"[ERROR] Recognition loop crashed: {e}")
     finally:
         cap.release()
+        print("[STOP] Camera released.")
+        report_task_complete()
 
+
+# ─── Main ─────────────────────────────────────────────────────────────────────
+
+# ─── Supervisor (Main Loop) ───────────────────────────────────────────────────
+
+def supervisor():
+    print("=" * 60)
+    print("   HOSTEL ATTENDANCE — PI COMMAND SUPERVISOR")
+    print("=" * 60)
+    print(f"[INFO] Server: {SERVER_URL}")
+    print("[INFO] Polling for commands...")
+
+    last_command = 'idle'
+    
+    while True:
+        try:
+            resp = requests.get(f"{SERVER_URL}/api/camera/state", timeout=5)
+            if resp.status_code == 200:
+                state = resp.json()
+                active = state.get('active', False)
+                command = state.get('command', 'idle')
+
+                if command == 'train':
+                    run_training_task()
+                elif active or command == 'recognize':
+                    run_recognition_task()
+                
+            time.sleep(3)
+        except KeyboardInterrupt:
+            print("\n[EXIT] Supervisor stopped by user.")
+            break
+        except Exception as e:
+            print(f"[ERROR] Supervisor poll failed: {e}")
+            time.sleep(5)
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1 and sys.argv[1] == 'train':
-        print("=" * 60)
-        print("   TRAINING MODE")
-        print("=" * 60)
-        dataset_dir    = os.path.join(os.path.dirname(__file__), 'dataset')
-        encodings_file = os.path.join(os.path.dirname(__file__), 'models', 'encodings.pkl')
-        os.makedirs(dataset_dir, exist_ok=True)
-        os.makedirs(os.path.dirname(encodings_file), exist_ok=True)
-        success = train_local(dataset_dir, encodings_file)
-        print("\n[DONE]" if success else "\n[FAILED]")
+    # Traditional manual mode still supported via CLI args
+    if len(sys.argv) > 1:
+        if sys.argv[1] == 'train':
+            run_training_task()
+        elif sys.argv[1] == 'recognize':
+            run_recognition_task()
+        else:
+            print("Usage: python raspberry_pi_client.py [train|recognize]")
     else:
-        main()
+        # Default: Start as Supervisor
+        supervisor()
