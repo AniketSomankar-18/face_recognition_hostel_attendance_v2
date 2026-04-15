@@ -97,22 +97,20 @@ class FaceRecognitionModule:
             image_files = [f for f in os.listdir(student_path)
                            if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
 
-            current_student_samples = []
-            for img_file in image_files[:10]: # Max 10 samples for efficiency
+            student_samples_found = 0
+            for img_file in image_files[:20]: # Sync with Pi client limit
                 img_path = os.path.join(student_path, img_file)
                 try:
                     image = face_recognition.load_image_file(img_path)
                     face_encs = face_recognition.face_encodings(image)
                     if face_encs:
-                        current_student_samples.append(face_encs[0])
+                        encodings.append(face_encs[0])
+                        names.append(reg_num)
+                        student_samples_found += 1
                 except Exception as e:
                     continue
 
-            if current_student_samples:
-                # Aggregate embeddings using Average (Centroid)
-                avg_encoding = np.mean(current_student_samples, axis=0)
-                encodings.append(avg_encoding)
-                names.append(reg_num)
+            if student_samples_found > 0:
                 count += 1
 
         if not encodings:

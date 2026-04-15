@@ -19,7 +19,7 @@ load_dotenv()
 SERVER_URL          = os.environ.get('SERVER_URL', 'https://sggs-hostel.onrender.com')
 ENCODINGS_FILE      = 'encodings.pkl'
 COOLDOWN            = 10       # seconds between marking same student again
-RECOGNITION_TOLERANCE = 0.42
+RECOGNITION_TOLERANCE = 0.55
 
 SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
 SUPABASE_KEY = os.environ.get('SUPABASE_SECRET_KEY', '')
@@ -66,13 +66,16 @@ def download_dataset_from_supabase(local_dir: str):
                 break
             offset += limit
             
-        # Filter for folders only (folders usually have id: None in listing)
-        student_reg_nums = [item['name'] for item in all_student_folders if item.get('id') is None]
+        # Filter for folders only (folders in Supabase storage list usually don't have extensions)
+        student_reg_nums = [
+            item['name'] for item in all_student_folders 
+            if '.' not in item['name'] and item['name'] != '.emptyKeep'
+        ]
         
-        # Safety Fallback: If paginated list failed but Bucket isn't totally empty
         if not student_reg_nums:
+            # Fallback: retry listing
             simple_list = client.storage.from_(DATASET_BUCKET).list()
-            student_reg_nums = [item['name'] for item in simple_list if item.get('id') is None]
+            student_reg_nums = [item['name'] for item in simple_list if '.' not in item['name']]
             if student_reg_nums:
                 print("[DATASET] Paginated list returned 0, falling back to simple list.")
 
@@ -185,22 +188,21 @@ def train_local(dataset_dir: str, encodings_file: str):
         image_files = [f for f in os.listdir(student_path)
                        if f.lower().endswith(('.jpg', '.jpeg', '.png'))][:20]
 
-        samples = []
+        student_samples_found = 0
         for img_file in image_files:
             img_path = os.path.join(student_path, img_file)
             try:
                 image = face_recognition.load_image_file(img_path)
                 encs = face_recognition.face_encodings(image)
                 if encs:
-                    samples.append(encs[0])
-            except Exception as e:
+                    encodings.append(encs[0])
+                    names.append(reg_num)
+                    student_samples_found += 1
+            except Exception:
                 continue
 
-        if samples:
-            avg_encoding = np.mean(samples, axis=0)
-            encodings.append(avg_encoding)
-            names.append(reg_num)
-            print(f"  ✓ {reg_num} — {len(samples)} samples")
+        if student_samples_found > 0:
+            print(f"  ✓ {reg_num} — {student_samples_found} samples")
         else:
             print(f"  ✗ {reg_num} — no faces detected, skipping")
 
@@ -298,6 +300,22 @@ def report_task_complete():
         requests.post(f"{SERVER_URL}/api/pi/task_complete", timeout=5)
     except Exception:
         pass
+
+def mark_present(reg_num, confidence):
+    """Notify server to mark attendance for a student."""
+    try:
+        resp = requests.post(
+            f"{SERVER_URL}/api/attendance/mark",
+            json={
+                "registration_number": reg_num,
+                "confidence": confidence,
+                "source": "pi"
+            },
+            timeout=5
+        )
+        return resp.json()
+    except Exception as e:
+        return {"success": False, "message": str(e)}
 
 # ─── Tasks ────────────────────────────────────────────────────────────────────
 
