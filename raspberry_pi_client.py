@@ -291,10 +291,12 @@ def recognize_frame(frame, known_encodings, known_names, frame_count=0):
     encodings = face_recognition.face_encodings(small, locations)
     results = []
     
+    K = 5  # Number of neighbors to consider for voting
+    
     for encoding in encodings:
         distances = np.linalg.norm(np.array(known_encodings) - encoding, axis=1)
         
-        # Track best distance per person across all faces in this frame
+        # Track best distance per person for diagnostics
         for name in unique_names:
             person_distances = distances[np.array(known_names) == name]
             if len(person_distances) > 0:
@@ -302,15 +304,38 @@ def recognize_frame(frame, known_encodings, known_names, frame_count=0):
                 if min_dist < best_distances_per_person[name]:
                     best_distances_per_person[name] = min_dist
 
-        best_idx  = np.argmin(distances)
-        best_dist = distances[best_idx]
-        confidence = round((1 - best_dist) * 100, 2)
+        # KNN Voting Logic
+        # 1. Get indices of top K matches
+        top_k_indices = np.argsort(distances)[:K]
+        top_k_names = [known_names[idx] for idx in top_k_indices]
+        top_k_distances = [distances[idx] for idx in top_k_indices]
         
-        if best_dist < RECOGNITION_TOLERANCE:
-            results.append((known_names[best_idx], confidence))
+        # 2. Count votes per identity
+        votes = {}
+        for name in top_k_names:
+            votes[name] = votes.get(name, 0) + 1
+        
+        # 3. Find winner
+        winner = max(votes, key=votes.get)
+        vote_count = votes[winner]
+        
+        # 4. Filter matches by distance and majority
+        # Average distance of the winner's samples in the top K
+        winner_distances = [dist for name, dist in zip(top_k_names, top_k_distances) if name == winner]
+        avg_dist = sum(winner_distances) / len(winner_distances)
+        confidence = round((1 - avg_dist) * 100, 2)
+        
+        # Success criteria:
+        # - Average distance below threshold
+        # - At least 3 out of 5 votes (or majority if K < 5)
+        required_votes = min(3, len(known_encodings))
+        
+        if avg_dist < RECOGNITION_TOLERANCE and vote_count >= required_votes:
+            results.append((winner, confidence))
+            print(f"[VOTE] {winner} wins ({vote_count}/{K} votes, Dist: {avg_dist:.2f})")
         else:
             if frame_count % 5 == 0:
-                 print(f"[DEBUG] Unknown face seen (Best: {best_dist:.2f})")
+                print(f"[DEBUG] Uncertain: {winner} ({vote_count}/{K} votes, Dist: {avg_dist:.2f})")
 
     # Diagnostic: Print the 'Radar' distance for every student identity
     if frame_count % 10 == 0:
