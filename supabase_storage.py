@@ -83,6 +83,7 @@ def delete_encodings() -> tuple[bool, str]:
         return False, err
 
 
+def get_encodings_url() -> str:
     """Get a signed URL for the Pi to download encodings directly."""
     try:
         client = _client()
