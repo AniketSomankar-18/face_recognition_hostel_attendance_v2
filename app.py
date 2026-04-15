@@ -940,45 +940,55 @@ def admin_sync_cloud():
 @login_required
 def audit_dataset():
     """
-    Audit the local dataset directory for anomalies that cause identity swaps:
-    - Folders whose reg_num doesn't match any active student in the DB
-    - Students with suspiciously high sample counts (possible cross-contamination)
+    Audit Supabase Storage (face-dataset bucket) for anomalies that cause identity swaps:
+    - Folders whose reg_num doesn't match any active student in the DB (orphans)
+    - Students with >20 samples (possible cross-contamination)
+    - Active students with zero samples (not enrolled)
     """
     if current_user.role != 'rector':
         return "Unauthorized", 403
 
-    if not os.path.exists(Config.DATASET_DIR):
-        return jsonify({'error': 'Dataset directory not found'})
+    from supabase_storage import list_dataset_students, list_student_frames
 
-    active_reg_nums = {s.registration_number for s in Student.query.filter_by(is_active=True).all()}
-    folders = [d for d in os.listdir(Config.DATASET_DIR)
-               if os.path.isdir(os.path.join(Config.DATASET_DIR, d))]
+    active_students = Student.query.filter_by(is_active=True).all()
+    active_reg_nums = {s.registration_number for s in active_students}
 
-    orphan_folders = []   # folders with no matching student in DB
-    suspicious = []       # students with >20 samples (possible contamination)
+    cloud_folders = list_dataset_students()
+    if not cloud_folders:
+        return jsonify({'error': 'Could not list Supabase dataset bucket. Check credentials or bucket name.'})
+
+    orphan_folders = []
+    suspicious = []
     ok = []
+    not_enrolled = []
 
-    for folder in sorted(folders):
-        path = os.path.join(Config.DATASET_DIR, folder)
-        count = len([f for f in os.listdir(path) if f.lower().endswith(('.jpg', '.jpeg', '.png'))])
+    for folder in sorted(cloud_folders):
+        frames = list_student_frames(folder)
+        count = len(frames)
         if folder not in active_reg_nums:
             orphan_folders.append({'folder': folder, 'images': count})
         elif count > 20:
             suspicious.append({'reg_num': folder, 'images': count,
-                                'note': 'Exceeds 20-sample cap — may contain foreign faces'})
+                                'note': 'Exceeds 20-sample cap — trim to 20 clean photos'})
         else:
             ok.append({'reg_num': folder, 'images': count})
 
+    cloud_set = set(cloud_folders)
+    for s in active_students:
+        if s.registration_number not in cloud_set:
+            not_enrolled.append(s.registration_number)
+
     return jsonify({
-        'total_folders': len(folders),
+        'total_cloud_folders': len(cloud_folders),
         'ok': len(ok),
         'orphan_folders': orphan_folders,
         'suspicious_folders': suspicious,
-        'action_required': len(orphan_folders) > 0 or len(suspicious) > 0
+        'not_enrolled': not_enrolled,
+        'action_required': bool(orphan_folders or suspicious)
     })
 
 
-@app.route('/admin/reset_encodings', methods=['POST'])
+@app.route('/admin/reset_encodings', methods=['GET', 'POST'])
 @login_required
 def reset_encodings():
     """
