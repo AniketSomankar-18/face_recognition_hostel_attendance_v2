@@ -124,23 +124,25 @@
             videoStream = await navigator.mediaDevices.getUserMedia({ 
                 video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" } 
             });
-            document.getElementById('videoFeed').srcObject = videoStream;
+            const video = document.getElementById('videoFeed');
+            video.srcObject = videoStream;
+            await video.play();
         } catch (err) {
             document.getElementById('statusMessage').textContent = 'Error accessing camera: ' + err.message;
-            document.getElementById('statusMessage').className = 'text-[11px] text-center text-error font-medium';
         }
     }
 
     async function captureImage() {
         const video = document.getElementById('videoFeed');
-        if (!video.videoWidth) return null;
+        // Wait until video has actual dimensions
+        if (!video.videoWidth || !video.videoHeight || video.readyState < 2) return null;
 
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        return canvas.toDataURL('image/jpeg', 0.9);
+        return canvas.toDataURL('image/jpeg', 0.85);
     }
 
     document.getElementById('startCaptureBtn').addEventListener('click', async function() {
@@ -150,54 +152,76 @@
         const progressBar = document.getElementById('progressBar');
         const statusMsg = document.getElementById('statusMessage');
 
+        // Check camera is ready
+        const video = document.getElementById('videoFeed');
+        if (!video.videoWidth) {
+            statusMsg.textContent = 'Camera not ready. Please wait a moment and try again.';
+            return;
+        }
+
         btn.style.display = 'none';
-        btn.nextElementSibling.classList.remove('hidden'); // Show capturing indicator
+        btn.nextElementSibling.classList.remove('hidden');
         guide.classList.add('capturing');
         statusMsg.textContent = 'Hold still... initializing capture sequence.';
 
         const regNum = '{{ student.registration_number }}';
+        let errorMsg = '';
 
         for (let i = 0; i < requiredImages; i++) {
-            statusMsg.textContent = `Capturing frame ${i+1} of ${requiredImages}...`;
+            statusMsg.textContent = `Capturing frame ${i + 1} of ${requiredImages}...`;
+
+            // Small delay to let video settle on first frame
+            if (i === 0) await new Promise(r => setTimeout(r, 500));
+
             const imageData = await captureImage();
-            
-            if (imageData) {
-                try {
-                    const response = await fetch('/api/capture_frame', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ reg_num: regNum, image: imageData })
-                    });
-                    
-                    const data = await response.json();
-                    if (data.success) {
-                        imagesCaptured++;
-                        progressText.textContent = imagesCaptured;
-                        progressBar.style.width = `${(imagesCaptured / requiredImages) * 100}%`;
-                        statusMsg.textContent = `Saved frame ${imagesCaptured} of ${requiredImages}...`;
-                    } else {
-                        console.warn('Frame skipped:', data.message);
-                    }
-                } catch (err) {
-                    console.error('Upload Error', err);
-                }
+
+            if (!imageData) {
+                errorMsg = 'Camera not ready';
+                await new Promise(r => setTimeout(r, 300));
+                continue;
             }
-            
-            // Adjust delay as needed
-            await new Promise(r => setTimeout(r, 600));
+
+            try {
+                const response = await fetch('/api/capture_frame', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reg_num: regNum, image: imageData })
+                });
+
+                if (!response.ok) {
+                    errorMsg = `Server error ${response.status}`;
+                    console.error('HTTP error:', response.status, await response.text());
+                    continue;
+                }
+
+                const result = await response.json();
+                if (result.success) {
+                    imagesCaptured++;
+                    progressText.textContent = imagesCaptured;
+                    progressBar.style.width = `${(imagesCaptured / requiredImages) * 100}%`;
+                    statusMsg.textContent = `Saved ${imagesCaptured} of ${requiredImages} frames...`;
+                } else {
+                    errorMsg = result.message || 'Unknown error';
+                    console.warn('Frame rejected:', result.message);
+                }
+            } catch (err) {
+                errorMsg = err.message;
+                console.error('Fetch error:', err);
+            }
+
+            await new Promise(r => setTimeout(r, 400));
         }
 
         guide.classList.remove('capturing');
-        
-        if (imagesCaptured >= requiredImages * 0.5) { // Assuming success if at least half worked, or strictly require 20? 
+
+        if (imagesCaptured >= Math.ceil(requiredImages * 0.5)) {
             statusMsg.textContent = 'Capture complete. Redirecting...';
             statusMsg.className = 'text-[11px] text-center text-green-600 font-bold';
-            setTimeout(() => {
-                window.location.href = "{{ url_for('students') }}";
-            }, 1000);
+            setTimeout(() => { window.location.href = "{{ url_for('students') }}"; }, 1000);
         } else {
-            statusMsg.textContent = `Only saved ${imagesCaptured} valid frames. Please refresh and try again.`;
-            statusMsg.className = 'text-[11px] text-center text-error font-medium';
+            const hint = errorMsg ? ` (${errorMsg})` : '';
+            statusMsg.textContent = `Only saved ${imagesCaptured} valid frames${hint}. Please refresh and try again.`;
+            statusMsg.className = 'text-[11px] text-center text-red-500 font-medium';
             btn.nextElementSibling.classList.add('hidden');
             btn.style.display = 'flex';
             btn.textContent = 'Retry Capture';
@@ -208,12 +232,9 @@
     });
 
     window.addEventListener('beforeunload', () => {
-        if (videoStream) {
-            videoStream.getTracks().forEach(t => t.stop());
-        }
+        if (videoStream) videoStream.getTracks().forEach(t => t.stop());
     });
 
-    // Initialize
     setupCamera();
 </script>
 {% endblock %}
