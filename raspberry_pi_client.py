@@ -271,7 +271,7 @@ def load_encodings():
 
 # ─── Recognition ──────────────────────────────────────────────────────────────
 
-def recognize_frame(frame, known_encodings, known_names):
+def recognize_frame(frame, known_encodings, known_names, frame_count=0):
     if not FACE_RECOGNITION_AVAILABLE or not known_encodings:
         return []
     rgb   = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -288,10 +288,12 @@ def recognize_frame(frame, known_encodings, known_names):
         confidence = round((1 - best_dist) * 100, 2)
         if best_dist < RECOGNITION_TOLERANCE:
             results.append((known_names[best_idx], confidence))
-        else:
-            # Log near-misses for diagnostics
-            if best_dist < 0.6:
-                print(f"[DEBUG] Near-miss: {known_names[best_idx]} (Dist: {best_dist:.2f}, Conf: {confidence}%)")
+    # Diagnostic: Group distances by student to see 'best' potential match per identity
+    unique_names = sorted(list(set(known_names)))
+    diag_str = " | ".join([f"{name}: {np.min(distances[np.array(known_names) == name]):.2f}" for name in unique_names])
+    if frame_count % 10 == 0: # Don't spam logs
+        print(f"[RADAR] {diag_str}")
+
     return results
 
 
@@ -305,9 +307,9 @@ def mark_present(reg_num, confidence):
     """Notify server to mark attendance for a student."""
     try:
         resp = requests.post(
-            f"{SERVER_URL}/api/attendance/mark",
+            f"{SERVER_URL}/api/pi/mark_present",
             json={
-                "registration_number": reg_num,
+                "reg_num": reg_num,
                 "confidence": confidence,
                 "source": "pi"
             },
@@ -383,7 +385,8 @@ def run_recognition_task():
             if frame_count % 5 != 0:
                 continue
 
-            for reg_num, confidence in recognize_frame(frame, known_encodings, known_names):
+            # Pass frame_count for diagnostic logging throttle
+            for reg_num, confidence in recognize_frame(frame, known_encodings, known_names, frame_count):
                 now = time.time()
                 if now - recently_marked.get(reg_num, 0) < COOLDOWN:
                     continue
