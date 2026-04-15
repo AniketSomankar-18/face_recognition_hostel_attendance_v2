@@ -30,7 +30,7 @@ class Config:
     TESTING_MODE = os.environ.get('FLASK_TESTING', 'True') == 'True'
 
     # Face recognition
-    RECOGNITION_TOLERANCE = 0.5
+    RECOGNITION_TOLERANCE = 0.42
     FACE_IMAGES_REQUIRED = 20
 
     # Reports

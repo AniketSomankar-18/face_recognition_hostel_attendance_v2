@@ -19,7 +19,7 @@ load_dotenv()
 SERVER_URL          = os.environ.get('SERVER_URL', 'https://sggs-hostel.onrender.com')
 ENCODINGS_FILE      = 'encodings.pkl'
 COOLDOWN            = 10       # seconds between marking same student again
-RECOGNITION_TOLERANCE = 0.5
+RECOGNITION_TOLERANCE = 0.42
 
 SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
 SUPABASE_KEY = os.environ.get('SUPABASE_SECRET_KEY', '')
@@ -283,8 +283,13 @@ def recognize_frame(frame, known_encodings, known_names):
         distances = np.linalg.norm(np.array(known_encodings) - encoding, axis=1)
         best_idx  = np.argmin(distances)
         best_dist = distances[best_idx]
+        confidence = round((1 - best_dist) * 100, 2)
         if best_dist < RECOGNITION_TOLERANCE:
-            results.append((known_names[best_idx], round((1 - best_dist) * 100, 2)))
+            results.append((known_names[best_idx], confidence))
+        else:
+            # Log near-misses for diagnostics
+            if best_dist < 0.6:
+                print(f"[DEBUG] Near-miss: {known_names[best_idx]} (Dist: {best_dist:.2f}, Conf: {confidence}%)")
     return results
 
 
@@ -326,6 +331,8 @@ def run_recognition_task():
         report_task_complete()
         return
 
+    print("[HARDWARE] Warming up camera...")
+    time.sleep(2)  # Give OS time to release hardware from previous tasks
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         print("[HARDWARE] Camera not found.")
