@@ -92,7 +92,7 @@ def list_dataset_students() -> list:
         limit = 100
         
         while True:
-            items = client.storage.from_(DATASET_BUCKET).list(options={
+            items = client.storage.from_(DATASET_BUCKET).list(path="", options={
                 "limit": limit,
                 "offset": offset
             })

@@ -53,7 +53,8 @@ def download_dataset_from_supabase(local_dir: str):
     
     try:
         while True:
-            batch = client.storage.from_(DATASET_BUCKET).list(options={
+            # Bug fix: list() requires path as first positional argument (even if empty)
+            batch = client.storage.from_(DATASET_BUCKET).list(path="", options={
                 "limit": limit,
                 "offset": offset,
                 "sortBy": {"column": "name", "order": "asc"}
@@ -67,9 +68,20 @@ def download_dataset_from_supabase(local_dir: str):
             
         # Filter for folders only (folders usually have id: None in listing)
         student_reg_nums = [item['name'] for item in all_student_folders if item.get('id') is None]
+        
+        # Safety Fallback: If paginated list failed but Bucket isn't totally empty
+        if not student_reg_nums:
+            simple_list = client.storage.from_(DATASET_BUCKET).list()
+            student_reg_nums = [item['name'] for item in simple_list if item.get('id') is None]
+            if student_reg_nums:
+                print("[DATASET] Paginated list returned 0, falling back to simple list.")
+
         print(f"[DATASET] Found {len(student_reg_nums)} student identities in cloud storage.")
         if student_reg_nums:
             print(f"[DATASET] Remote folders found: {', '.join(student_reg_nums[:10])}{' ...' if len(student_reg_nums) > 10 else ''}")
+        else:
+            # Critical Debug: What is Supabase actually returning?
+            print(f"[DEBUG] Raw response from root list: {all_student_folders}")
 
     except Exception as e:
         print(f"[DATASET] Failed to list buckets/students: {e}")
