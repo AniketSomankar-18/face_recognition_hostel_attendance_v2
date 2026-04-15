@@ -9,7 +9,13 @@ import os
 from supabase import create_client
 
 SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
-SUPABASE_KEY = os.environ.get('SUPABASE_SECRET_KEY', '')
+# Try multiple common environment variable names for the Secret Key
+SUPABASE_KEY = (
+    os.environ.get('SUPABASE_SECRET_KEY') or 
+    os.environ.get('SUPABASE_KEY') or 
+    os.environ.get('SERVICE_ROLE_KEY') or 
+    ''
+)
 ENCODINGS_BUCKET = 'face-encodings'
 DATASET_BUCKET   = 'face-dataset'
 ENCODINGS_OBJECT = 'encodings.pkl'
