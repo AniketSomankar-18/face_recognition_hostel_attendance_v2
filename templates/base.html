@@ -97,12 +97,11 @@
                 </a>
             </div>
             
-            <form method="POST" action="{{ url_for('train_model') }}">
-                <button type="submit" class="w-full btn btn-primary btn-sm justify-center gap-3 py-2.5">
-                    <span class="material-symbols-rounded text-sm">model_training</span>
-                    <span class="font-bold">Train AI Model</span>
-                </button>
-            </form>
+            <button type="button" onclick="trainModelAJAX(this)" class="w-full btn btn-primary btn-sm justify-center gap-3 py-2.5">
+                <span class="material-symbols-rounded text-sm" id="trainIcon">model_training</span>
+                <span class="font-bold" id="trainLabel">Train AI Model</span>
+            </button>
+            <div id="trainStatus" class="text-[10px] text-center mt-2 font-semibold hidden"></div>
         </div>
     </aside>
     <!-- Sidebar Overlay -->
@@ -200,6 +199,54 @@
     </main>
 
     <script>
+        async function trainModelAJAX(btn) {
+            const icon = document.getElementById('trainIcon');
+            const label = document.getElementById('trainLabel');
+            const status = document.getElementById('trainStatus');
+
+            btn.disabled = true;
+            icon.textContent = 'sync';
+            icon.style.animation = 'spin 1s linear infinite';
+            label.textContent = 'Training...';
+            status.className = 'text-[10px] text-center mt-2 font-semibold text-slate-400';
+            status.textContent = 'Starting...';
+            status.classList.remove('hidden');
+
+            try {
+                const resp = await fetch('/train', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            } catch(e) {}
+
+            // Poll for result
+            let attempts = 0;
+            const poll = setInterval(async () => {
+                attempts++;
+                try {
+                    const r = await fetch('/api/training/status');
+                    const d = await r.json();
+                    if (!d.is_training) {
+                        clearInterval(poll);
+                        btn.disabled = false;
+                        icon.style.animation = '';
+                        if (d.error) {
+                            icon.textContent = 'error';
+                            label.textContent = 'Train AI Model';
+                            status.className = 'text-[10px] text-center mt-2 font-semibold text-red-500';
+                            status.textContent = d.error;
+                        } else {
+                            icon.textContent = 'check_circle';
+                            label.textContent = 'Train AI Model';
+                            status.className = 'text-[10px] text-center mt-2 font-semibold text-green-600';
+                            status.textContent = 'Model trained successfully!';
+                            setTimeout(() => { icon.textContent = 'model_training'; status.classList.add('hidden'); }, 4000);
+                        }
+                    } else {
+                        status.textContent = `Training... (${attempts * 3}s)`;
+                    }
+                } catch(e) {}
+                if (attempts > 40) { clearInterval(poll); btn.disabled = false; }
+            }, 3000);
+        }
+
         function updateLiveTime() {
             const dateEl = document.getElementById('currentDateTop');
             const timeEl = document.getElementById('currentTimeTop');

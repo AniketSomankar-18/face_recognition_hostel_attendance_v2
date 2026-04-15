@@ -20,7 +20,7 @@ from modules.attendance import (mark_attendance, get_today_summary,
 from modules.reports import generate_excel_report, generate_absent_pdf
 from penalty_system import finalize_attendance, get_penalty_summary
 from email_service import mail, init_mail
-from supabase_storage import upload_encodings, download_encodings, get_encodings_url
+from supabase_storage import upload_encodings, download_encodings, get_encodings_url, upload_frame
 
 # ─── App Setup ────────────────────────────────────────────────────────────────
 app = Flask(__name__)
@@ -106,7 +106,7 @@ def enforce_auth():
     # List of endpoints allowed without login
     # Added camera APIs to whitelist for Raspberry Pi client
     whitelist = ['login', 'static', 'get_camera_state', 'recognize_frame',
-                 'pi_sync_encodings', 'pi_mark_present']
+                 'pi_sync_encodings', 'pi_mark_present', 'pi_upload_encodings']
     if not current_user.is_authenticated and request.endpoint not in whitelist:
         if request.endpoint:
             return redirect(url_for('login'))
@@ -380,7 +380,12 @@ def capture_frame():
             return jsonify({'success': False, 'message': 'Enough images captured', 'count': existing})
 
         # Save the full frame — face validation happens at training time
-        cv2.imwrite(os.path.join(save_dir, f"{existing + 1}.jpg"), frame)
+        img_path = os.path.join(save_dir, f"{existing + 1}.jpg")
+        cv2.imwrite(img_path, frame)
+
+        # Upload frame to Supabase Storage so Pi can download for training
+        with open(img_path, 'rb') as f:
+            upload_frame(reg_num, f"{existing + 1}.jpg", f.read())
 
         new_count = existing + 1
         student.face_samples_count = new_count
@@ -441,22 +446,47 @@ def pi_mark_present():
         return jsonify({'success': False, 'message': str(e)})
 
 
+@app.route('/api/pi/upload_encodings', methods=['POST'])
+def pi_upload_encodings():
+    """
+    Pi trains locally and uploads encodings.pkl here.
+    Render saves it locally and pushes to Supabase Storage.
+    """
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'No file provided'})
+    f = request.files['file']
+    try:
+        os.makedirs(os.path.dirname(Config.ENCODINGS_FILE), exist_ok=True)
+        f.save(Config.ENCODINGS_FILE)
+        # Push to Supabase Storage for persistence
+        upload_encodings(Config.ENCODINGS_FILE)
+        # Reload into memory
+        face_module._load_encodings()
+        return jsonify({'success': True, 'message': 'Encodings updated successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+
 @app.route('/train', methods=['POST'])
 @login_required
 def train_model():
     global is_training, last_training_error
-    
+
     if is_training:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Already training'})
         flash('AI Engine is already training. Please wait...', 'warning')
         return redirect(url_for('dashboard'))
 
     is_training = True
     last_training_error = None
-    
-    # Start training in background thread
+
     thread = threading.Thread(target=background_train, args=(app.app_context(),))
     thread.start()
-    
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': True, 'message': 'Training started'})
+
     flash('Identity learning started in background. The system will be ready in a few moments.', 'info')
     return redirect(url_for('dashboard'))
 
