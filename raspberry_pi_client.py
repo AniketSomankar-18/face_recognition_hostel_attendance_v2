@@ -222,6 +222,16 @@ def train_local(dataset_dir: str, encodings_file: str):
     # 4. Push to Render server so it reloads immediately
     push_encodings_to_server(encodings_file)
 
+    # 5. Purge local dataset — photos are safe in Supabase, no need to keep them on disk
+    try:
+        import shutil
+        if os.path.exists(dataset_dir):
+            shutil.rmtree(dataset_dir)
+            os.makedirs(dataset_dir)  # recreate empty dir for next time
+            print(f"[CLEANUP] Local dataset purged. Disk space freed.")
+    except Exception as e:
+        print(f"[CLEANUP] Warning: could not purge dataset dir: {e}")
+
     return True
 
 
@@ -350,6 +360,20 @@ def report_task_complete():
         requests.post(f"{SERVER_URL}/api/pi/task_complete", timeout=5)
     except Exception:
         pass
+
+
+def _purge_session_frames():
+    """Delete any locally captured frames after attendance session ends.
+    The source-of-truth photos live in Supabase; local copies are disposable."""
+    import shutil
+    dataset_dir = os.path.join(os.path.dirname(__file__), 'dataset')
+    if os.path.exists(dataset_dir):
+        try:
+            shutil.rmtree(dataset_dir)
+            os.makedirs(dataset_dir)
+            print("[CLEANUP] Session frames purged from local disk.")
+        except Exception as e:
+            print(f"[CLEANUP] Warning: could not purge session frames: {e}")
 
 def mark_present(reg_num, confidence):
     """Notify server to mark attendance for a student."""
@@ -487,6 +511,9 @@ def run_recognition_task():
         cap.release()
         print("[STOP] Camera released.")
         report_task_complete()
+        # Purge any frames captured during this session — attendance is already
+        # recorded in the DB, keeping raw photos on disk serves no purpose.
+        _purge_session_frames()
 
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
