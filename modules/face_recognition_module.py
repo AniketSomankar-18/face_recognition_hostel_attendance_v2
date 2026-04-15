@@ -151,24 +151,37 @@ class FaceRecognitionModule:
 
         results = []
         for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
-            # Scalable Search Index Lookup
-            matches = self.index.search(face_encoding, k=1, threshold=self.tolerance)
-            
-            if matches:
-                match = matches[0]
-                res = {
-                    'name': match['meta']['reg_num'],
-                    'reg_num': match['meta']['reg_num'],
-                    'confidence': match['confidence'],
-                    'location': (top*2, right*2, bottom*2, left*2)
-                }
+            # KNN Voting: find top-5 neighbours, require majority (3/5) below threshold
+            K = 5
+            matches = self.index.search(face_encoding, k=K, threshold=self.tolerance)
+
+            if len(matches) >= 3:
+                # Count votes per identity
+                votes = {}
+                for m in matches:
+                    rn = m['meta']['reg_num']
+                    votes[rn] = votes.get(rn, 0) + 1
+
+                winner = max(votes, key=votes.get)
+                vote_count = votes[winner]
+                required_votes = min(3, len(self.index.vectors))
+
+                if vote_count >= required_votes:
+                    winner_dists = [m['distance'] for m in matches if m['meta']['reg_num'] == winner]
+                    avg_dist = sum(winner_dists) / len(winner_dists)
+                    confidence = round((1 - avg_dist) * 100, 2)
+                    res = {
+                        'name': winner,
+                        'reg_num': winner,
+                        'confidence': confidence,
+                        'location': (top*2, right*2, bottom*2, left*2)
+                    }
+                else:
+                    res = {'name': "Unknown", 'reg_num': None, 'confidence': 0.0,
+                           'location': (top*2, right*2, bottom*2, left*2)}
             else:
-                res = {
-                    'name': "Unknown",
-                    'reg_num': None,
-                    'confidence': 0.0,
-                    'location': (top*2, right*2, bottom*2, left*2)
-                }
+                res = {'name': "Unknown", 'reg_num': None, 'confidence': 0.0,
+                       'location': (top*2, right*2, bottom*2, left*2)}
             results.append(res)
 
         return results

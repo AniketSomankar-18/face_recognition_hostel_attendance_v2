@@ -936,6 +936,67 @@ def admin_sync_cloud():
     return jsonify(result)
 
 
+@app.route('/admin/audit_dataset')
+@login_required
+def audit_dataset():
+    """
+    Audit the local dataset directory for anomalies that cause identity swaps:
+    - Folders whose reg_num doesn't match any active student in the DB
+    - Students with suspiciously high sample counts (possible cross-contamination)
+    """
+    if current_user.role != 'rector':
+        return "Unauthorized", 403
+
+    if not os.path.exists(Config.DATASET_DIR):
+        return jsonify({'error': 'Dataset directory not found'})
+
+    active_reg_nums = {s.registration_number for s in Student.query.filter_by(is_active=True).all()}
+    folders = [d for d in os.listdir(Config.DATASET_DIR)
+               if os.path.isdir(os.path.join(Config.DATASET_DIR, d))]
+
+    orphan_folders = []   # folders with no matching student in DB
+    suspicious = []       # students with >20 samples (possible contamination)
+    ok = []
+
+    for folder in sorted(folders):
+        path = os.path.join(Config.DATASET_DIR, folder)
+        count = len([f for f in os.listdir(path) if f.lower().endswith(('.jpg', '.jpeg', '.png'))])
+        if folder not in active_reg_nums:
+            orphan_folders.append({'folder': folder, 'images': count})
+        elif count > 20:
+            suspicious.append({'reg_num': folder, 'images': count,
+                                'note': 'Exceeds 20-sample cap — may contain foreign faces'})
+        else:
+            ok.append({'reg_num': folder, 'images': count})
+
+    return jsonify({
+        'total_folders': len(folders),
+        'ok': len(ok),
+        'orphan_folders': orphan_folders,
+        'suspicious_folders': suspicious,
+        'action_required': len(orphan_folders) > 0 or len(suspicious) > 0
+    })
+
+
+@app.route('/admin/reset_encodings', methods=['POST'])
+@login_required
+def reset_encodings():
+    """
+    Delete encodings.pkl and reset the in-memory index.
+    Use after fixing the dataset, then trigger retrain from the dashboard.
+    """
+    if current_user.role != 'rector':
+        return "Unauthorized", 403
+
+    try:
+        if os.path.exists(Config.ENCODINGS_FILE):
+            os.remove(Config.ENCODINGS_FILE)
+        face_module.index = face_module.index.__class__()
+        return jsonify({'success': True, 'message': 'encodings.pkl deleted. Trigger retrain from dashboard.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+
 if __name__ == '__main__':
     init_database()
     print("[INFO] Starting SGGS Hostel Attendance System")

@@ -11,6 +11,14 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
                               'sqlite:///' + os.path.join(BASE_DIR, 'database', 'hostel.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # Fix SSL "decryption failed / bad record mac" on Render + Supabase Postgres.
+    # pool_pre_ping tests the connection before use (drops stale/broken SSL sessions).
+    # pool_recycle forces a new connection every 5 min so the SSL state never drifts.
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+        'connect_args': {'sslmode': 'require'} if os.environ.get('DATABASE_URL') else {}
+    }
     PERMANENT_SESSION_LIFETIME = timedelta(hours=8)
 
     # Dataset and model paths

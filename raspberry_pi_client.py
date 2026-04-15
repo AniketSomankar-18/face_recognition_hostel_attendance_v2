@@ -424,6 +424,10 @@ def run_recognition_task():
     print(f"\n[READY] Recognizing {len(known_names)} students.\n")
     recently_marked = {}
     frame_count = 0
+    # Recognition buffer: require BUFFER_REQUIRED consecutive hits of the same identity
+    # before marking. Prevents a single misidentified frame from triggering attendance.
+    BUFFER_REQUIRED = 4   # ~2 seconds at 1 recognition per 0.5s (every 5th frame @ ~10fps)
+    recognition_buffer = {}  # reg_num -> consecutive_hit_count
 
     try:
         while True:
@@ -448,16 +452,31 @@ def run_recognition_task():
                 continue
 
             # Pass frame_count for diagnostic logging throttle
+            detected_this_frame = set()
             for reg_num, confidence in recognize_frame(frame, known_encodings, known_names, frame_count):
-                now = time.time()
-                if now - recently_marked.get(reg_num, 0) < COOLDOWN:
-                    continue
-                result = mark_present(reg_num, confidence)
-                recently_marked[reg_num] = now
-                if result.get('success'):
-                    print(f"[MARKED] {reg_num} — {result.get('direction','IN')} ({confidence}%)")
+                detected_this_frame.add(reg_num)
+                recognition_buffer[reg_num] = recognition_buffer.get(reg_num, 0) + 1
+
+                if recognition_buffer[reg_num] >= BUFFER_REQUIRED:
+                    now = time.time()
+                    if now - recently_marked.get(reg_num, 0) < COOLDOWN:
+                        continue
+                    result = mark_present(reg_num, confidence)
+                    recently_marked[reg_num] = now
+                    recognition_buffer[reg_num] = 0  # reset after marking
+                    if result.get('success'):
+                        print(f"[MARKED] {reg_num} — {result.get('direction','IN')} ({confidence}%) [buffer confirmed]")
+                    else:
+                        print(f"[SKIP]   {reg_num}: {result.get('message','failed')}")
                 else:
-                    print(f"[SKIP]   {reg_num}: {result.get('message','failed')}")
+                    print(f"[BUFFER] {reg_num}: {recognition_buffer[reg_num]}/{BUFFER_REQUIRED} hits")
+
+            # Decay buffer for identities NOT seen this frame
+            for reg_num in list(recognition_buffer.keys()):
+                if reg_num not in detected_this_frame:
+                    recognition_buffer[reg_num] = max(0, recognition_buffer[reg_num] - 1)
+                    if recognition_buffer[reg_num] == 0:
+                        del recognition_buffer[reg_num]
             
             # Tiny sleep to reduce CPU load
             time.sleep(0.01)
