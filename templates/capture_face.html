@@ -163,10 +163,10 @@
             
             if (imageData) {
                 try {
-                    const response = await fetch(`/capture_face/${regNum}`, {
+                    const response = await fetch('/api/capture_frame', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ image: imageData })
+                        body: JSON.stringify({ reg_num: regNum, image: imageData })
                     });
                     
                     const data = await response.json();

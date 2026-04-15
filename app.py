@@ -19,6 +19,7 @@ from modules.attendance import (mark_attendance, get_today_summary,
 from modules.reports import generate_excel_report, generate_absent_pdf
 from penalty_system import finalize_attendance, get_penalty_summary
 from email_service import mail, init_mail
+from supabase_storage import upload_encodings, download_encodings, get_encodings_url
 
 # ─── App Setup ────────────────────────────────────────────────────────────────
 app = Flask(__name__)
@@ -43,6 +44,13 @@ login_manager.login_message_category = 'warning'
 
 face_module = FaceRecognitionModule(Config)
 
+# On startup, pull latest encodings from Supabase Storage if local copy is missing
+if not os.path.exists(Config.ENCODINGS_FILE):
+    print("[STARTUP] No local encodings found. Attempting download from Supabase Storage...")
+    download_encodings(Config.ENCODINGS_FILE)
+    if os.path.exists(Config.ENCODINGS_FILE):
+        face_module._load_encodings()  # Reload into memory
+
 # ─── Training State ───────────────────────────────────────────────────────────
 training_lock = threading.Lock()
 is_training = False
@@ -53,7 +61,10 @@ def background_train(app_context):
     with app_context:
         try:
             success, message, count = face_module.train_model()
-            if not success:
+            if success:
+                # Persist encodings to Supabase Storage so they survive Render deploys
+                upload_encodings(Config.ENCODINGS_FILE)
+            else:
                 last_training_error = message
         except Exception as e:
             last_training_error = str(e)
@@ -93,7 +104,8 @@ def enforce_auth():
     """Fail-safe: Redirect unauthenticated users to login for all restricted routes."""
     # List of endpoints allowed without login
     # Added camera APIs to whitelist for Raspberry Pi client
-    whitelist = ['login', 'static', 'get_camera_state', 'recognize_frame']
+    whitelist = ['login', 'static', 'get_camera_state', 'recognize_frame',
+                 'pi_sync_encodings', 'pi_mark_present']
     if not current_user.is_authenticated and request.endpoint not in whitelist:
         if request.endpoint:
             return redirect(url_for('login'))
@@ -391,6 +403,45 @@ def capture_frame():
 def get_face_count(reg_num):
     return jsonify({'count': face_module.get_face_image_count(reg_num),
                     'required': Config.FACE_IMAGES_REQUIRED})
+
+
+# ─── Raspberry Pi Edge Endpoints ──────────────────────────────────────────────
+@app.route('/api/pi/sync_encodings', methods=['GET'])
+def pi_sync_encodings():
+    """
+    Pi calls this on startup to get a signed download URL for encodings.pkl.
+    No login required — Pi uses this to bootstrap its local recognition model.
+    """
+    url = get_encodings_url()
+    if url:
+        return jsonify({'success': True, 'url': url})
+    # Fallback: try to serve local file directly
+    if os.path.exists(Config.ENCODINGS_FILE):
+        return send_file(Config.ENCODINGS_FILE,
+                         mimetype='application/octet-stream',
+                         as_attachment=True,
+                         download_name='encodings.pkl')
+    return jsonify({'success': False, 'message': 'No encodings available yet. Train the model first.'})
+
+
+@app.route('/api/pi/mark_present', methods=['POST'])
+def pi_mark_present():
+    """
+    Pi sends {"reg_num": "...", "confidence": 92.5} after local face recognition.
+    Server just writes attendance to Supabase — no image processing needed.
+    """
+    data = request.get_json()
+    reg_num = data.get('reg_num')
+    confidence = data.get('confidence', 0.0)
+
+    if not reg_num:
+        return jsonify({'success': False, 'message': 'Missing reg_num'})
+
+    try:
+        success, message, direction = mark_attendance(reg_num, confidence, marked_by='raspberry_pi')
+        return jsonify({'success': success, 'message': message, 'direction': direction})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
 
 
 @app.route('/train', methods=['POST'])

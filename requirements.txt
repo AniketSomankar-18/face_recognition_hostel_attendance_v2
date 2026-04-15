@@ -22,5 +22,8 @@ reportlab==4.2.2
 Pillow==10.4.0
 opencv-python-headless==4.10.0.84
 
+# Supabase Storage (for encodings persistence across Render deploys)
+supabase==2.5.0
+
 # Optional: Face Recognition is handled by Raspberry Pi client
 # Cloud server runs in mock mode to save memory
