@@ -84,22 +84,52 @@ def upload_frame(reg_num: str, filename: str, image_bytes: bytes) -> bool:
 
 
 def list_dataset_students() -> list:
-    """List all student reg_num folders in the dataset bucket."""
+    """List all student reg_num folders in the dataset bucket (paginated)."""
     try:
         client = _client()
-        items = client.storage.from_(DATASET_BUCKET).list()
-        return [item['name'] for item in items if item.get('id') is None]  # folders have no id
+        all_items = []
+        offset = 0
+        limit = 100
+        
+        while True:
+            items = client.storage.from_(DATASET_BUCKET).list(options={
+                "limit": limit,
+                "offset": offset
+            })
+            if not items:
+                break
+            all_items.extend(items)
+            if len(items) < limit:
+                break
+            offset += limit
+            
+        return [item['name'] for item in all_items if item.get('id') is None]  # folders have no id
     except Exception as e:
         print(f"[STORAGE] list_dataset_students failed: {e}")
         return []
 
 
 def list_student_frames(reg_num: str) -> list:
-    """List all frame filenames for a student."""
+    """List all frame filenames for a student (paginated)."""
     try:
         client = _client()
-        items = client.storage.from_(DATASET_BUCKET).list(reg_num)
-        return [item['name'] for item in items if item['name'].endswith(('.jpg', '.jpeg', '.png'))]
+        all_items = []
+        offset = 0
+        limit = 100
+        
+        while True:
+            items = client.storage.from_(DATASET_BUCKET).list(reg_num, options={
+                "limit": limit,
+                "offset": offset
+            })
+            if not items:
+                break
+            all_items.extend(items)
+            if len(items) < limit:
+                break
+            offset += limit
+            
+        return [item['name'] for item in all_items if item['name'].endswith(('.jpg', '.jpeg', '.png'))]
     except Exception as e:
         print(f"[STORAGE] list_student_frames failed ({reg_num}): {e}")
         return []

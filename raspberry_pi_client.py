@@ -43,23 +43,46 @@ def _supabase():
 
 def download_dataset_from_supabase(local_dir: str):
     """Download all student frames from Supabase Storage to local disk."""
-    print("[DATASET] Downloading training frames from Supabase Storage...")
+    print("[DATASET] Syncing training frames from Supabase Storage...")
     client = _supabase()
 
+    # 1. List all student folders in the bucket (with pagination for 1000+ students)
+    all_student_folders = []
+    offset = 0
+    limit = 100
+    
     try:
-        students = client.storage.from_(DATASET_BUCKET).list()
+        while True:
+            batch = client.storage.from_(DATASET_BUCKET).list(options={
+                "limit": limit,
+                "offset": offset,
+                "sortBy": {"column": "name", "order": "asc"}
+            })
+            if not batch:
+                break
+            all_student_folders.extend(batch)
+            if len(batch) < limit:
+                break
+            offset += limit
+            
+        # Filter for folders only (folders usually have id: None in listing)
+        student_reg_nums = [item['name'] for item in all_student_folders if item.get('id') is None]
+        print(f"[DATASET] Found {len(student_reg_nums)} student identities in cloud storage.")
+        if student_reg_nums:
+            print(f"[DATASET] Remote folders found: {', '.join(student_reg_nums[:10])}{' ...' if len(student_reg_nums) > 10 else ''}")
+
     except Exception as e:
-        print(f"[DATASET] Failed to list students: {e}")
+        print(f"[DATASET] Failed to list buckets/students: {e}")
         return 0
 
-    total = 0
-    for item in students:
-        reg_num = item['name']
+    total_downloaded = 0
+    for reg_num in student_reg_nums:
         student_dir = os.path.join(local_dir, reg_num)
         os.makedirs(student_dir, exist_ok=True)
 
         try:
-            frames = client.storage.from_(DATASET_BUCKET).list(reg_num)
+            # List frames for this specific student (increased limit to 500)
+            frames = client.storage.from_(DATASET_BUCKET).list(reg_num, options={"limit": 500})
         except Exception as e:
             print(f"[DATASET] Failed to list frames for {reg_num}: {e}")
             continue
@@ -75,12 +98,12 @@ def download_dataset_from_supabase(local_dir: str):
                 data = client.storage.from_(DATASET_BUCKET).download(f"{reg_num}/{fname}")
                 with open(local_path, 'wb') as f:
                     f.write(data)
-                total += 1
+                total_downloaded += 1
             except Exception as e:
                 print(f"[DATASET] Failed to download {reg_num}/{fname}: {e}")
 
-    print(f"[DATASET] Downloaded {total} new frames.")
-    return total
+    print(f"[DATASET] Downloaded {total_downloaded} new frames.")
+    return total_downloaded
 
 
 def upload_encodings_to_supabase(local_path: str):
