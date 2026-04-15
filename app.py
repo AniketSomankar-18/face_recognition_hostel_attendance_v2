@@ -390,7 +390,7 @@ def capture_frame():
                     up_success, up_msg = upload_frame(reg_num, "1.jpg", f.read())
                     if not up_success:
                         return jsonify({'success': False, 'message': f'Cloud sync check failed: {up_msg}'})
-            return jsonify({'success': False, 'message': 'Enough images captured locally.', 'count': existing})
+            return jsonify({'success': True, 'message': 'Target reached! All photos are secured in the cloud.', 'count': existing, 'complete': True})
 
         # Save the full frame — face validation happens at training time
         img_path = os.path.join(save_dir, f"{existing + 1}.jpg")

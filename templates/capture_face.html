@@ -37,6 +37,22 @@
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <!-- Error Notification Area -->
+    <div id="errorBanner" class="hidden lg:col-span-12 bg-rose-50 border-l-4 border-rose-500 p-4 mb-4 rounded-xl animate-fade-in">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <span class="material-symbols-rounded text-rose-500">error</span>
+            </div>
+            <div class="ml-3">
+                <p id="errorText" class="text-sm font-bold text-rose-700"></p>
+            </div>
+            <div class="ml-auto pl-3">
+                <button type="button" onclick="this.parentElement.parentElement.parentElement.classList.add('hidden')" class="text-rose-500 hover:text-rose-700">
+                    <span class="material-symbols-rounded text-sm">close</span>
+                </button>
+            </div>
+        </div>
+    </div>
     
     <!-- Left: Camera Feed -->
     <div class="lg:col-span-8">
@@ -199,9 +215,16 @@
                     imagesCaptured++;
                     progressText.textContent = imagesCaptured;
                     progressBar.style.width = `${(imagesCaptured / requiredImages) * 100}%`;
-                    statusMsg.textContent = `Saved ${imagesCaptured} of ${requiredImages} frames...`;
+                    statusMsg.textContent = result.message || `Saved ${imagesCaptured} of ${requiredImages} frames...`;
+                    
+                    // If server says they already have enough, we can stop early
+                    if (result.complete) {
+                        imagesCaptured = requiredImages;
+                        break;
+                    }
                 } else {
                     errorMsg = result.message || 'Unknown error';
+                    showError(errorMsg);
                     console.warn('Frame rejected:', result.message);
                 }
             } catch (err) {
@@ -215,9 +238,9 @@
         guide.classList.remove('capturing');
 
         if (imagesCaptured >= Math.ceil(requiredImages * 0.5)) {
-            statusMsg.textContent = 'Capture complete. Redirecting...';
+            statusMsg.textContent = 'Enrollment finalized in cloud. Redirecting...';
             statusMsg.className = 'text-[11px] text-center text-green-600 font-bold';
-            setTimeout(() => { window.location.href = "{{ url_for('students') }}"; }, 1000);
+            setTimeout(() => { window.location.href = "{{ url_for('students') }}"; }, 1500);
         } else {
             const hint = errorMsg ? ` (${errorMsg})` : '';
             statusMsg.textContent = `Only saved ${imagesCaptured} valid frames${hint}. Please refresh and try again.`;
@@ -230,6 +253,15 @@
             progressBar.style.width = '0%';
         }
     });
+
+    function showError(msg) {
+        const banner = document.getElementById('errorBanner');
+        const text = document.getElementById('errorText');
+        text.textContent = msg;
+        banner.classList.remove('hidden');
+        // Hide after 8 seconds
+        setTimeout(() => banner.classList.add('hidden'), 8000);
+    }
 
     window.addEventListener('beforeunload', () => {
         if (videoStream) videoStream.getTracks().forEach(t => t.stop());
