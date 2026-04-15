@@ -274,24 +274,47 @@ def load_encodings():
 def recognize_frame(frame, known_encodings, known_names, frame_count=0):
     if not FACE_RECOGNITION_AVAILABLE or not known_encodings:
         return []
+    
     rgb   = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     small = cv2.resize(rgb, (0, 0), fx=0.5, fy=0.5)
     locations = face_recognition.face_locations(small, model='hog')
+    
+    unique_names = sorted(list(set(known_names)))
+    # Initialize distances for diagnostic radar with high values (infinity)
+    best_distances_per_person = {name: 1.0 for name in unique_names}
+
     if not locations:
+        if frame_count % 10 == 0:
+            print(f"[RADAR] No faces detected...")
         return []
+
     encodings = face_recognition.face_encodings(small, locations)
     results = []
+    
     for encoding in encodings:
         distances = np.linalg.norm(np.array(known_encodings) - encoding, axis=1)
+        
+        # Track best distance per person across all faces in this frame
+        for name in unique_names:
+            person_distances = distances[np.array(known_names) == name]
+            if len(person_distances) > 0:
+                min_dist = np.min(person_distances)
+                if min_dist < best_distances_per_person[name]:
+                    best_distances_per_person[name] = min_dist
+
         best_idx  = np.argmin(distances)
         best_dist = distances[best_idx]
         confidence = round((1 - best_dist) * 100, 2)
+        
         if best_dist < RECOGNITION_TOLERANCE:
             results.append((known_names[best_idx], confidence))
-    # Diagnostic: Group distances by student to see 'best' potential match per identity
-    unique_names = sorted(list(set(known_names)))
-    diag_str = " | ".join([f"{name}: {np.min(distances[np.array(known_names) == name]):.2f}" for name in unique_names])
-    if frame_count % 10 == 0: # Don't spam logs
+        else:
+            if frame_count % 5 == 0:
+                 print(f"[DEBUG] Unknown face seen (Best: {best_dist:.2f})")
+
+    # Diagnostic: Print the 'Radar' distance for every student identity
+    if frame_count % 10 == 0:
+        diag_str = " | ".join([f"{name}: {dist:.2f}" for name, dist in best_distances_per_person.items()])
         print(f"[RADAR] {diag_str}")
 
     return results
@@ -352,10 +375,24 @@ def run_recognition_task():
         return
 
     print("[HARDWARE] Warming up camera...")
-    time.sleep(2)  # Give OS time to release hardware from previous tasks
-    cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        print("[HARDWARE] Camera not found.")
+    time.sleep(3)  # Increased delay for OS to release hardware
+    
+    cap = None
+    for attempt in range(5):
+        for idx in [0, 1]:  # Try different camera indices
+            print(f"[HARDWARE] Opening camera (Index: {idx}, Attempt: {attempt+1})...")
+            cap = cv2.VideoCapture(idx)
+            if cap.isOpened():
+                ret, _ = cap.read()
+                if ret:
+                    break
+            cap.release()
+            cap = None
+        if cap: break
+        time.sleep(2)
+
+    if not cap or not cap.isOpened():
+        print("[HARDWARE] CRITICAL: Camera not found or busy after 5 attempts.")
         report_task_complete()
         return
 
