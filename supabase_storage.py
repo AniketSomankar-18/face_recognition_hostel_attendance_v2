@@ -161,3 +161,20 @@ def download_frame(reg_num: str, filename: str) -> bytes:
     except Exception as e:
         print(f"[STORAGE] download_frame failed ({reg_num}/{filename}): {e}")
         return None
+
+
+def delete_student_dataset(reg_num: str) -> tuple[bool, str]:
+    """Delete all frames for a student from the dataset bucket."""
+    try:
+        client = _client()
+        frames = list_student_frames(reg_num)
+        if not frames:
+            return True, "No frames found"
+        paths = [f"{reg_num}/{fname}" for fname in frames]
+        client.storage.from_(DATASET_BUCKET).remove(paths)
+        print(f"[STORAGE] Deleted {len(paths)} frames for {reg_num}")
+        return True, f"Deleted {len(paths)} frames"
+    except Exception as e:
+        err = str(e)
+        print(f"[STORAGE] delete_student_dataset failed ({reg_num}): {err}")
+        return False, err

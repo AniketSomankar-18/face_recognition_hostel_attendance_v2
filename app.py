@@ -988,6 +988,51 @@ def audit_dataset():
     })
 
 
+@app.route('/admin/purge_dataset', methods=['GET'])
+@login_required
+def purge_dataset():
+    """
+    Delete ALL frames from Supabase Storage for every enrolled student,
+    reset their face_samples_count/face_encoded flags in the DB,
+    and wipe encodings.pkl so the model is fully clean.
+    Rector-only. Use before a fresh bulk enrollment session.
+    """
+    if current_user.role != 'rector':
+        return "Unauthorized", 403
+
+    from supabase_storage import list_dataset_students, delete_student_dataset
+
+    cloud_folders = list_dataset_students()
+    results = []
+    failed = []
+
+    for reg_num in cloud_folders:
+        ok, msg = delete_student_dataset(reg_num)
+        if ok:
+            results.append(reg_num)
+            # Reset DB flags so the student shows as un-enrolled
+            s = Student.query.filter_by(registration_number=reg_num).first()
+            if s:
+                s.face_samples_count = 0
+                s.face_encoded = False
+        else:
+            failed.append({'reg_num': reg_num, 'error': msg})
+
+    db.session.commit()
+
+    # Wipe encodings.pkl and in-memory index
+    if os.path.exists(Config.ENCODINGS_FILE):
+        os.remove(Config.ENCODINGS_FILE)
+    face_module.index = face_module.index.__class__()
+
+    return jsonify({
+        'success': len(failed) == 0,
+        'purged': results,
+        'failed': failed,
+        'message': f"Purged {len(results)} student(s). Model reset. Ready for fresh enrollment."
+    })
+
+
 @app.route('/admin/reset_encodings', methods=['GET', 'POST'])
 @login_required
 def reset_encodings():
