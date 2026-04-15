@@ -378,7 +378,8 @@ def capture_frame():
 
         save_dir = os.path.join(Config.DATASET_DIR, reg_num)
         os.makedirs(save_dir, exist_ok=True)
-        existing = len([f for f in os.listdir(save_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))])
+        # TRITICAL FIX: Use database count instead of os.listdir because Render wipes local files.
+        existing = student.face_samples_count
 
         if existing >= Config.FACE_IMAGES_REQUIRED:
             # Force a re-upload of one frame to Supabase to verify sync
@@ -417,7 +418,8 @@ def capture_frame():
 @app.route('/api/get_face_count/<reg_num>')
 @login_required
 def get_face_count(reg_num):
-    return jsonify({'count': face_module.get_face_image_count(reg_num),
+    student = Student.query.filter_by(registration_number=reg_num).first_or_404()
+    return jsonify({'count': student.face_samples_count,
                     'required': Config.FACE_IMAGES_REQUIRED})
 
 
