@@ -382,6 +382,20 @@ def run_recognition_task():
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
+def check_hardware():
+    """Verify camera hardware is available on startup."""
+    print("[HARDWARE] Checking camera...")
+    cap = cv2.VideoCapture(0)
+    if cap.isOpened():
+        ret, _ = cap.read()
+        cap.release()
+        if ret:
+            print("[HARDWARE] Camera OK")
+            return True
+    print("[HARDWARE] CRITICAL: Camera not found or busy!")
+    return False
+
+
 # ─── Supervisor (Main Loop) ───────────────────────────────────────────────────
 
 def supervisor():
@@ -389,12 +403,21 @@ def supervisor():
     print("   HOSTEL ATTENDANCE — PI COMMAND SUPERVISOR")
     print("=" * 60)
     print(f"[INFO] Server: {SERVER_URL}")
-    print("[INFO] Polling for commands...")
-
-    last_command = 'idle'
     
+    if not check_hardware():
+        print("[WARNING] Proceeding anyway, but recognition might fail.")
+    
+    print("\n[READY] Listening for commands from dashboard...")
+    print("[HINT]  Go to 'Attendance' page and click 'Start Recognition'")
+
+    last_log_time = 0
     while True:
         try:
+            # Subtle heartbeat log every 1 minute
+            if time.time() - last_log_time > 60:
+                print(f"[STATUS] {datetime.now().strftime('%H:%M:%S')} - Waiting for command...")
+                last_log_time = time.time()
+
             resp = requests.get(f"{SERVER_URL}/api/camera/state", timeout=5)
             if resp.status_code == 200:
                 state = resp.json()
@@ -415,6 +438,8 @@ def supervisor():
             time.sleep(5)
 
 if __name__ == '__main__':
+    from datetime import datetime
+    
     # Traditional manual mode still supported via CLI args
     if len(sys.argv) > 1:
         if sys.argv[1] == 'train':
