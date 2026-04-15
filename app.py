@@ -385,7 +385,8 @@ def capture_frame():
 
         # Upload frame to Supabase Storage so Pi can download for training
         with open(img_path, 'rb') as f:
-            upload_frame(reg_num, f"{existing + 1}.jpg", f.read())
+            if not upload_frame(reg_num, f"{existing + 1}.jpg", f.read()):
+                return jsonify({'success': False, 'message': 'Cloud storage upload failed. Please check your Supabase API keys (sb_secret_...) and bucket permissions.'})
 
         new_count = existing + 1
         student.face_samples_count = new_count

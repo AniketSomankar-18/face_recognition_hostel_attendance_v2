@@ -16,6 +16,13 @@ ENCODINGS_OBJECT = 'encodings.pkl'
 
 
 def _client():
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        print(f"[STORAGE] CRITICAL: Missing credentials! URL={bool(SUPABASE_URL)}, KEY={bool(SUPABASE_KEY)}")
+    else:
+        # Diagnostic: Log key format (obscured)
+        key_preview = f"{SUPABASE_KEY[:6]}...{SUPABASE_KEY[-4:]}" if len(SUPABASE_KEY) > 10 else "INVALID"
+        print(f"[STORAGE] Initializing client for {SUPABASE_URL} with key {key_preview}")
+        
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
@@ -77,9 +84,10 @@ def upload_frame(reg_num: str, filename: str, image_bytes: bytes) -> bool:
             file=image_bytes,
             file_options={"content-type": "image/jpeg", "upsert": "true"}
         )
+        print(f"[STORAGE] Frame uploaded for {reg_num}: {object_path}")
         return True
     except Exception as e:
-        print(f"[STORAGE] Frame upload failed ({reg_num}/{filename}): {e}")
+        print(f"[STORAGE] upload_frame failed for {reg_num}: {e}")
         return False
 
 
