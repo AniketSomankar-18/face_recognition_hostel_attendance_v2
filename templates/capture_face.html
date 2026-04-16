@@ -4,24 +4,28 @@
 {% block content %}
 <style>
     .face-guide {
-        border: 2px dashed rgba(255,255,255,0.6);
+        border: 3px dashed rgba(255,255,255,0.85);
         border-radius: 50%;
         position: absolute;
-        width: 60%;
-        max-width: 220px;
-        aspect-ratio: 4/5;
-        top: 50%;
+        width: 75%;
+        max-width: 300px;
+        aspect-ratio: 3/4;
+        top: 48%;
         left: 50%;
         transform: translate(-50%, -50%);
         pointer-events: none;
-        box-shadow: 0 0 0 9999px rgba(0,0,0,0.45);
-        transition: border-color 0.3s;
+        /* dim only outside the oval */
+        box-shadow: 0 0 0 9999px rgba(0,0,0,0.35);
+        transition: border-color 0.3s, box-shadow 0.3s;
+        z-index: 10;
     }
     .face-guide.capturing {
-        border-color: #6366f1;
-        box-shadow: 0 0 0 9999px rgba(0,0,0,0.45), 0 0 0 3px #6366f1;
+        border-color: #818cf8;
+        box-shadow: 0 0 0 9999px rgba(0,0,0,0.35), 0 0 20px 4px rgba(99,102,241,0.6);
     }
-    #videoFeed { transform: scaleX(-1); } /* mirror for selfie feel */
+    #videoFeed { transform: scaleX(-1); }
+    /* un-mirror the guide label so text reads correctly */
+    #guideLabel { transform: scaleX(-1); }
 </style>
 
 <!-- Header -->
@@ -56,7 +60,11 @@
             <!-- Video -->
             <div class="relative bg-black" style="aspect-ratio:4/3;">
                 <video id="videoFeed" class="absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
-                <div id="guideOverlay" class="face-guide"></div>
+                <div id="guideOverlay" class="face-guide">
+                    <span id="guideLabel" class="absolute bottom-3 inset-x-0 text-center text-white/70 text-[11px] font-semibold tracking-wide select-none">
+                        Fit face here
+                    </span>
+                </div>
 
                 <!-- Capture button overlay -->
                 <div class="absolute bottom-4 inset-x-0 flex justify-center z-20">
