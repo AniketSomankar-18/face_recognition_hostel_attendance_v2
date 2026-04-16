@@ -1,131 +1,126 @@
 {% extends "base.html" %}
-{% block title %}Face Enrollment – Hostel Excellence{% endblock %}
+{% block title %}Face Enrollment – {{ student.name }}{% endblock %}
 
 {% block content %}
 <style>
     .face-guide {
-        border: 2px dashed rgba(255, 255, 255, 0.5);
+        border: 2px dashed rgba(255,255,255,0.6);
         border-radius: 50%;
         position: absolute;
-        width: 250px;
-        height: 300px;
+        width: 60%;
+        max-width: 220px;
+        aspect-ratio: 4/5;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
         pointer-events: none;
-        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 0 0 9999px rgba(0,0,0,0.45);
         transition: border-color 0.3s;
     }
     .face-guide.capturing {
-        border-color: #00236f;
-        background: rgba(0, 35, 111, 0.2);
+        border-color: #6366f1;
+        box-shadow: 0 0 0 9999px rgba(0,0,0,0.45), 0 0 0 3px #6366f1;
     }
+    #videoFeed { transform: scaleX(-1); } /* mirror for selfie feel */
 </style>
 
-<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-    <div>
-        <h1 class="text-3xl font-extrabold text-on-surface tracking-tight mb-2">Face Enrollment</h1>
-        <p class="text-on-surface-variant font-medium">Capturing biometric data for <strong class="text-primary">{{ student.name }}</strong> ({{ student.registration_number }})</p>
+<!-- Header -->
+<div class="flex items-center justify-between mb-5 gap-3">
+    <div class="min-w-0">
+        <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 truncate">Face Enrollment</h1>
+        <p class="text-sm text-slate-500 truncate">
+            <strong class="text-indigo-600">{{ student.name }}</strong>
+            <span class="text-slate-400 ml-1">· {{ student.registration_number }}</span>
+        </p>
     </div>
-    <div class="bg-surface-container px-4 py-2 rounded-xl flex items-center gap-3 border border-outline-variant/10">
-        <span class="material-symbols-rounded text-primary">psychology</span>
-        <div>
-            <div class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Target Captures</div>
-            <div class="font-black text-lg text-primary leading-tight"><span id="progressText">0</span> / 20</div>
-        </div>
+    <div class="shrink-0 bg-indigo-50 border border-indigo-100 px-3 py-2 rounded-xl text-center">
+        <div class="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">Progress</div>
+        <div class="font-black text-lg text-indigo-600 leading-tight"><span id="progressText">0</span>/20</div>
     </div>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-    <!-- Error Notification Area -->
-    <div id="errorBanner" class="hidden lg:col-span-12 bg-rose-50 border-l-4 border-rose-500 p-4 mb-4 rounded-xl animate-fade-in">
-        <div class="flex items-center">
-            <div class="flex-shrink-0">
-                <span class="material-symbols-rounded text-rose-500">error</span>
-            </div>
-            <div class="ml-3">
-                <p id="errorText" class="text-sm font-bold text-rose-700"></p>
-            </div>
-            <div class="ml-auto pl-3">
-                <button type="button" onclick="this.parentElement.parentElement.parentElement.classList.add('hidden')" class="text-rose-500 hover:text-rose-700">
-                    <span class="material-symbols-rounded text-sm">close</span>
-                </button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Left: Camera Feed -->
-    <div class="lg:col-span-8">
-        <div class="bg-surface-container-lowest p-2 rounded-2xl shadow-sm border border-outline-variant/10">
-            <div class="relative bg-black rounded-xl overflow-hidden aspect-video flex flex-col items-center justify-center min-h-[400px]">
-                <video id="videoFeed" class="absolute inset-0 w-full h-full object-cover" autoplay playsinline></video>
-                <div id="guideOverlay" class="face-guide z-10 w-[200px] h-[250px] md:w-[250px] md:h-[300px]"></div>
-                
-                <div class="absolute bottom-6 left-0 right-0 flex justify-center z-20">
-                    <button id="startCaptureBtn" class="bg-primary text-white px-8 py-3 rounded-full font-bold shadow-lg flex items-center gap-2 hover:bg-primary-container transition-all transform hover:scale-105">
-                        <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1;">camera</span>
-                        Start Auto-Capture
+<!-- Error banner -->
+<div id="errorBanner" class="hidden mb-4 bg-rose-50 border-l-4 border-rose-500 p-3 rounded-xl flex items-start gap-2">
+    <span class="material-symbols-rounded text-rose-500 text-base mt-0.5">error</span>
+    <p id="errorText" class="text-sm font-semibold text-rose-700 flex-1"></p>
+    <button onclick="this.parentElement.classList.add('hidden')" class="text-rose-400 hover:text-rose-600">
+        <span class="material-symbols-rounded text-base">close</span>
+    </button>
+</div>
+
+<div class="flex flex-col lg:flex-row gap-5 items-start">
+
+    <!-- Camera card -->
+    <div class="w-full lg:flex-1">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <!-- Video -->
+            <div class="relative bg-black" style="aspect-ratio:4/3;">
+                <video id="videoFeed" class="absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
+                <div id="guideOverlay" class="face-guide"></div>
+
+                <!-- Capture button overlay -->
+                <div class="absolute bottom-4 inset-x-0 flex justify-center z-20">
+                    <button id="startCaptureBtn"
+                        class="bg-indigo-600 active:bg-indigo-700 text-white px-6 py-3 rounded-full font-bold shadow-lg flex items-center gap-2 text-sm transition-all">
+                        <span class="material-symbols-rounded" style="font-variation-settings:'FILL' 1">camera</span>
+                        Start Capture
                     </button>
-                    
-                    <button class="hidden bg-slate-800/80 backdrop-blur text-white px-6 py-2 rounded-full font-bold shadow-lg flex items-center gap-2">
+                    <div id="capturingIndicator" class="hidden bg-black/70 backdrop-blur text-white px-5 py-3 rounded-full font-bold flex items-center gap-2 text-sm">
                         <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                        Capturing... Please hold still
-                    </button>
+                        Capturing…
+                    </div>
                 </div>
             </div>
-            
-            <div class="p-4 bg-surface-container-low rounded-xl mt-2 border border-outline-variant/10">
-                <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden mb-2">
-                    <div id="progressBar" class="bg-primary h-full transition-all duration-300" style="width: 0%"></div>
+
+            <!-- Progress bar -->
+            <div class="px-4 py-3 bg-slate-50 border-t border-slate-100">
+                <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden mb-1.5">
+                    <div id="progressBar" class="bg-indigo-600 h-full transition-all duration-300" style="width:0%"></div>
                 </div>
-                <p class="text-[11px] text-center text-slate-500 font-medium" id="statusMessage">Slowly move your head slightly while capturing.</p>
+                <p id="statusMessage" class="text-xs text-center text-slate-500 font-medium">
+                    Slowly move your head slightly while capturing.
+                </p>
             </div>
         </div>
     </div>
 
-    <!-- Right: Instructions & Warnings -->
-    <div class="lg:col-span-4 space-y-6">
-        <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
-            <h3 class="font-bold text-blue-900 mb-4 flex items-center gap-2">
-                <span class="material-symbols-rounded text-primary">lightbulb</span> Encoding Guidelines
+    <!-- Tips card -->
+    <div class="w-full lg:w-64 shrink-0">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+            <h3 class="font-bold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+                <span class="material-symbols-rounded text-indigo-500 text-base">lightbulb</span>
+                Tips for best results
             </h3>
-            
-            <ul class="space-y-4">
-                <li class="flex items-start gap-3">
-                    <div class="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-                        <span class="material-symbols-rounded text-[14px]">face</span>
-                    </div>
+            <ul class="space-y-3">
+                <li class="flex items-start gap-2.5">
+                    <span class="material-symbols-rounded text-indigo-400 text-base mt-0.5">face</span>
                     <div>
-                        <h4 class="text-xs font-bold text-slate-700">Center Face</h4>
-                        <p class="text-[11px] text-slate-500 mt-0.5">Keep your face within the dashed oval boundary.</p>
+                        <p class="text-xs font-bold text-slate-700">Centre your face</p>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Keep face inside the oval guide.</p>
                     </div>
                 </li>
-                <li class="flex items-start gap-3">
-                    <div class="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-                        <span class="material-symbols-rounded text-[14px]">360</span>
-                    </div>
+                <li class="flex items-start gap-2.5">
+                    <span class="material-symbols-rounded text-indigo-400 text-base mt-0.5">360</span>
                     <div>
-                        <h4 class="text-xs font-bold text-slate-700">Slight Movements</h4>
-                        <p class="text-[11px] text-slate-500 mt-0.5">Slowly tilt your head up, down, left, and right during the capture process.</p>
+                        <p class="text-xs font-bold text-slate-700">Slight movements</p>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Tilt head up, down, left, right slowly.</p>
                     </div>
                 </li>
-                <li class="flex items-start gap-3">
-                    <div class="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-                        <span class="material-symbols-rounded text-[14px]">light_mode</span>
-                    </div>
+                <li class="flex items-start gap-2.5">
+                    <span class="material-symbols-rounded text-indigo-400 text-base mt-0.5">light_mode</span>
                     <div>
-                        <h4 class="text-xs font-bold text-slate-700">Good Lighting</h4>
-                        <p class="text-[11px] text-slate-500 mt-0.5">Ensure your face is well-lit and not shadowed.</p>
+                        <p class="text-xs font-bold text-slate-700">Good lighting</p>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Face should be evenly lit, no shadows.</p>
                     </div>
                 </li>
             </ul>
-        </div>
-        
-        <div class="bg-error-container/30 px-6 py-4 rounded-xl border border-error/20 flex gap-3">
-            <span class="material-symbols-rounded text-error mt-0.5">warning</span>
-            <p class="text-[11px] text-on-surface-variant font-medium">Removing glasses or masks is recommended for the most accurate facial encoding sequence.</p>
+            <div class="mt-4 bg-amber-50 border border-amber-100 rounded-xl p-3 flex gap-2">
+                <span class="material-symbols-rounded text-amber-500 text-base mt-0.5 shrink-0">warning</span>
+                <p class="text-[11px] text-slate-600">Remove glasses or masks for best accuracy.</p>
+            </div>
         </div>
     </div>
+
 </div>
 {% endblock %}
 
@@ -136,118 +131,106 @@
     const requiredImages = 20;
 
     async function setupCamera() {
+        const statusMsg = document.getElementById('statusMessage');
         try {
-            videoStream = await navigator.mediaDevices.getUserMedia({ 
-                video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" } 
-            });
+            // Prefer rear camera on mobile if available, fallback to front
+            const constraints = {
+                video: {
+                    facingMode: { ideal: 'user' },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
+            };
+            videoStream = await navigator.mediaDevices.getUserMedia(constraints);
             const video = document.getElementById('videoFeed');
             video.srcObject = videoStream;
             await video.play();
         } catch (err) {
-            document.getElementById('statusMessage').textContent = 'Error accessing camera: ' + err.message;
+            statusMsg.textContent = 'Camera error: ' + err.message;
+            statusMsg.className = 'text-xs text-center text-rose-500 font-medium';
         }
     }
 
     async function captureImage() {
         const video = document.getElementById('videoFeed');
-        // Wait until video has actual dimensions
-        if (!video.videoWidth || !video.videoHeight || video.readyState < 2) return null;
-
+        if (!video.videoWidth || video.readyState < 2) return null;
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         const ctx = canvas.getContext('2d');
+        // Un-mirror before saving so the server gets the correct orientation
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         return canvas.toDataURL('image/jpeg', 0.85);
     }
 
-    document.getElementById('startCaptureBtn').addEventListener('click', async function() {
+    document.getElementById('startCaptureBtn').addEventListener('click', async function () {
         const btn = this;
+        const indicator = document.getElementById('capturingIndicator');
         const guide = document.getElementById('guideOverlay');
         const progressText = document.getElementById('progressText');
         const progressBar = document.getElementById('progressBar');
         const statusMsg = document.getElementById('statusMessage');
 
-        // Check camera is ready
         const video = document.getElementById('videoFeed');
         if (!video.videoWidth) {
-            statusMsg.textContent = 'Camera not ready. Please wait a moment and try again.';
+            statusMsg.textContent = 'Camera not ready. Please wait and try again.';
             return;
         }
 
-        btn.style.display = 'none';
-        btn.nextElementSibling.classList.remove('hidden');
+        btn.classList.add('hidden');
+        indicator.classList.remove('hidden');
         guide.classList.add('capturing');
-        statusMsg.textContent = 'Hold still... initializing capture sequence.';
+        statusMsg.textContent = 'Hold still… starting capture.';
 
         const regNum = '{{ student.registration_number }}';
         let errorMsg = '';
 
         for (let i = 0; i < requiredImages; i++) {
-            statusMsg.textContent = `Capturing frame ${i + 1} of ${requiredImages}...`;
-
-            // Small delay to let video settle on first frame
+            statusMsg.textContent = `Capturing frame ${i + 1} of ${requiredImages}…`;
             if (i === 0) await new Promise(r => setTimeout(r, 500));
 
             const imageData = await captureImage();
-
             if (!imageData) {
-                errorMsg = 'Camera not ready';
                 await new Promise(r => setTimeout(r, 300));
                 continue;
             }
 
             try {
-                const response = await fetch('/api/capture_frame', {
+                const resp = await fetch('/api/capture_frame', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ reg_num: regNum, image: imageData })
                 });
-
-                if (!response.ok) {
-                    errorMsg = `Server error ${response.status}`;
-                    console.error('HTTP error:', response.status, await response.text());
-                    continue;
-                }
-
-                const result = await response.json();
+                const result = await resp.json();
                 if (result.success) {
                     imagesCaptured++;
                     progressText.textContent = imagesCaptured;
                     progressBar.style.width = `${(imagesCaptured / requiredImages) * 100}%`;
-                    statusMsg.textContent = result.message || `Saved ${imagesCaptured} of ${requiredImages} frames...`;
-                    
-                    // If server says they already have enough, we can stop early
-                    if (result.complete) {
-                        imagesCaptured = requiredImages;
-                        break;
-                    }
+                    if (result.complete) { imagesCaptured = requiredImages; break; }
                 } else {
                     errorMsg = result.message || 'Unknown error';
                     showError(errorMsg);
-                    console.warn('Frame rejected:', result.message);
                 }
             } catch (err) {
                 errorMsg = err.message;
-                console.error('Fetch error:', err);
             }
 
-            await new Promise(r => setTimeout(r, 400));
+            await new Promise(r => setTimeout(r, 350));
         }
 
         guide.classList.remove('capturing');
+        indicator.classList.add('hidden');
 
         if (imagesCaptured >= Math.ceil(requiredImages * 0.5)) {
-            statusMsg.textContent = 'Enrollment finalized in cloud. Redirecting...';
-            statusMsg.className = 'text-[11px] text-center text-green-600 font-bold';
+            statusMsg.textContent = '✓ Enrollment complete. Redirecting…';
+            statusMsg.className = 'text-xs text-center text-emerald-600 font-bold';
             setTimeout(() => { window.location.href = "{{ url_for('students') }}"; }, 1500);
         } else {
-            const hint = errorMsg ? ` (${errorMsg})` : '';
-            statusMsg.textContent = `Only saved ${imagesCaptured} valid frames${hint}. Please refresh and try again.`;
-            statusMsg.className = 'text-[11px] text-center text-red-500 font-medium';
-            btn.nextElementSibling.classList.add('hidden');
-            btn.style.display = 'flex';
-            btn.textContent = 'Retry Capture';
+            statusMsg.textContent = `Only ${imagesCaptured} frames saved. Please retry.`;
+            statusMsg.className = 'text-xs text-center text-rose-500 font-medium';
+            btn.classList.remove('hidden');
             imagesCaptured = 0;
             progressText.textContent = '0';
             progressBar.style.width = '0%';
@@ -256,11 +239,9 @@
 
     function showError(msg) {
         const banner = document.getElementById('errorBanner');
-        const text = document.getElementById('errorText');
-        text.textContent = msg;
+        document.getElementById('errorText').textContent = msg;
         banner.classList.remove('hidden');
-        // Hide after 8 seconds
-        setTimeout(() => banner.classList.add('hidden'), 8000);
+        setTimeout(() => banner.classList.add('hidden'), 6000);
     }
 
     window.addEventListener('beforeunload', () => {
