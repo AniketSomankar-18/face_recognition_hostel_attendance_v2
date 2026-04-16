@@ -49,8 +49,8 @@
 </div>
 
 <!-- Roster -->
-<div class="card p-0 overflow-hidden bg-white">
-    <div class="px-4 sm:px-6 py-3 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+<div class="card bg-white mb-6" style="overflow:visible;">
+    <div class="px-4 sm:px-6 py-3 bg-slate-50 border-b border-slate-100 flex justify-between items-center rounded-t-xl">
         <h3 class="text-xs font-black text-slate-700 uppercase tracking-widest">Resident Roster</h3>
         <span class="bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-full">
             {{ student_data|length }} Profiles
@@ -60,7 +60,8 @@
     {% if student_data %}
 
     <!-- Mobile card list (hidden on md+) -->
-    <ul class="divide-y divide-slate-100 md:hidden">
+    <div class="md:hidden">
+    <ul class="divide-y divide-slate-100">
         {% for item in student_data %}
         {% set s = item.student %}
         <li class="px-4 py-4">
@@ -124,6 +125,7 @@
         </li>
         {% endfor %}
     </ul>
+    </div>
 
     <!-- Desktop table (hidden below md) -->
     <div class="hidden md:block overflow-x-auto">
