@@ -1127,14 +1127,25 @@ textarea.form-control { resize: vertical; }
 /* Responsive Utilities */
 @media (min-width: 640px) {
     .sm\:flex { display: flex !important; }
+    .sm\:flex-row { flex-direction: row !important; }
+    .sm\:items-center { align-items: center !important; }
     .sm\:hidden { display: none !important; }
+    .sm\:w-auto { width: auto !important; }
+    .sm\:p-6 { padding: 1.5rem !important; }
+    .sm\:px-6 { padding-left: 1.5rem !important; padding-right: 1.5rem !important; }
 }
 @media (min-width: 768px) {
     .md\:hidden { display: none !important; }
+    .md\:block { display: block !important; }
     .md\:flex { display: flex !important; }
+    .md\:items-center { align-items: center !important; }
     .md\:flex-row { flex-direction: row !important; }
     .md\:static { position: static !important; }
     .md\:translate-x-0 { transform: translateX(0) !important; }
+    .md\:w-72 { width: 18rem !important; }
+    .md\:left-auto { left: auto !important; }
+    .md\:bottom-6 { bottom: 1.5rem !important; }
+    .md\:right-6 { right: 1.5rem !important; }
 }
 @media (min-width: 1024px) {
     .lg\:grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)) !important; }
